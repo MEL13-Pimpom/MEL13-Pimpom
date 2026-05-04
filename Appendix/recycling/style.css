@@ -1,0 +1,320 @@
+/* ================= RESET ================= */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+    background: linear-gradient(to right, #e8f5e9, #f1f5f9);
+    color: #1e293b;
+}
+
+a {
+    text-decoration: none;
+}
+
+/* ================= LOGIN ================= */
+.login-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+
+/* Card chính */
+.login-box {
+    background: white;
+    padding: 48px 40px;
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+    width: 100%;
+    max-width: 520px;
+    text-align: center;
+}
+
+/* Logo */
+.logo-box {
+    width: 95px;
+    height: 95px;
+    margin: 0 auto 20px;
+}
+
+.logo-box img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+/* Title */
+.login-box h1 {
+    font-size: 28px;
+    margin-bottom: 10px;
+    color: #0f172a;
+}
+
+/* Subtitle */
+.subtitle {
+    color: #64748b;
+    font-size: 16px;
+    margin-bottom: 32px;
+}
+
+/* Form */
+.form-group {
+    text-align: left;
+    margin-bottom: 20px;
+}
+
+.label-wrapper {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+label {
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.forgot-link {
+    font-size: 13px;
+    color: #4caf50;
+}
+
+/* Input */
+input {
+    width: 100%;
+    padding: 14px;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 14px;
+    transition: 0.2s;
+}
+
+input:focus {
+    border-color: #4caf50;
+    outline: none;
+}
+
+/* Button */
+.btn-login {
+    width: 100%;
+    padding: 14px;
+    background: #4caf50;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 600;
+    margin-top: 10px;
+    cursor: pointer;
+}
+
+.btn-login:hover {
+    background: #43a047;
+}
+
+/* Signup */
+.signup-text {
+    margin-top: 20px;
+    font-size: 14px;
+    color: #64748b;
+}
+
+.signup-text a {
+    color: #4caf50;
+    font-weight: 600;
+}
+
+/* Test account */
+.test-accounts {
+    margin-top: 30px;
+    padding-top: 25px;
+    border-top: 1px solid #e2e8f0;
+    font-size: 13px;
+    color: #64748b;
+}
+
+.test-accounts ul {
+    list-style: none;
+    margin-top: 10px;
+}
+
+/* ================= DASHBOARD ================= */
+.dashboard-wrapper {
+    display: flex;
+    height: 100vh;
+}
+
+/* Sidebar */
+.sidebar {
+    width: 260px;
+    background: white;
+    border-right: 1px solid #e2e8f0;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Header sidebar */
+.sidebar-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 40px;
+}
+
+/* Logo sidebar FIX */
+.side-logo {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.side-logo img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+/* Text brand */
+.brand-text {
+    font-weight: bold;
+    color: #2e7d32;
+    font-size: 14px;
+}
+
+/* Menu */
+.nav-menu {
+    flex: 1;
+}
+
+.nav-link {
+    display: flex;
+    align-items: center;
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 6px;
+    color: #64748b;
+}
+
+.nav-link.active {
+    background: #4caf50;
+    color: white;
+}
+
+.nav-link:hover {
+    background: #f1f5f9;
+}
+
+/* Content */
+.main-content {
+    flex: 1;
+    padding: 32px;
+}
+
+/* Header top */
+.top-header {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 30px;
+}
+
+.user-profile {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.btn-logout {
+    padding: 8px 14px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    background: white;
+    cursor: pointer;
+}
+
+/* Banner */
+.welcome-banner h1 {
+    font-size: 28px;
+}
+
+.welcome-banner p {
+    color: #64748b;
+    margin-bottom: 30px;
+}
+
+/* Stats */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 18px;
+    margin-bottom: 30px;
+}
+
+.stat-card {
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+}
+
+.stat-value {
+    font-size: 22px;
+    font-weight: bold;
+}
+
+/* Content grid */
+.dashboard-content-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 20px;
+}
+
+.content-card {
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+}
+
+/* Request */
+.request-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 14px;
+    border: 1px solid #f1f5f9;
+    border-radius: 10px;
+    margin-bottom: 10px;
+}
+
+.status-badge {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+}
+
+.completed {
+    background: #dcfce7;
+    color: #16a34a;
+}
+
+.pending {
+    background: #fef3c7;
+    color: #d97706;
+}
+
+/* Notification */
+.notif-item {
+    font-size: 14px;
+    margin-bottom: 10px;
+}
+
+/* ================= GLOBAL FIX ================= */
+/* NGĂN LOGO BỊ PHÓNG TO */
+img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+}

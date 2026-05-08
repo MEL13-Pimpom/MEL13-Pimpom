@@ -5,8 +5,6 @@ import type { Database } from "@/lib/types/database";
 const PROTECTED_PREFIXES = ["/resident", "/admin", "/collector"];
 const AUTH_PAGES = ["/login", "/signup", "/forgot-password"];
 
-type CookieToSet = { name: string; value: string; options?: CookieOptions };
-
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
 
@@ -18,7 +16,7 @@ export async function updateSession(request: NextRequest) {
         getAll() {
           return request.cookies.getAll();
         },
-        setAll(cookiesToSet: CookieToSet[]) {
+        setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
           cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value),
           );

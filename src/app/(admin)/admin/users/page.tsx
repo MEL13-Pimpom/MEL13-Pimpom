@@ -117,6 +117,7 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
               <TableHeader>
                 <TableRow>
                   <TableHead>User</TableHead>
+                  <TableHead>Email</TableHead>
                   <TableHead>Role</TableHead>
                   <TableHead>Phone</TableHead>
                   <TableHead>Address</TableHead>
@@ -127,13 +128,13 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
               <TableBody>
                 {error ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-12 text-destructive">
+                    <TableCell colSpan={7} className="text-center py-12 text-destructive">
                       Failed to load users: {error.message}
                     </TableCell>
                   </TableRow>
                 ) : users.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
+                    <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
                       No users match your filters.
                     </TableCell>
                   </TableRow>
@@ -170,6 +171,9 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
                               </span>
                             </div>
                           </div>
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {u.email || "—"}
                         </TableCell>
                         <TableCell>
                           <Badge className={badge.className} variant="outline">

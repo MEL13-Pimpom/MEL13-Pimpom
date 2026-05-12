@@ -1,9 +1,11 @@
 "use client";
 
 import { useTransition } from "react";
+import Link from "next/link";
 import { formatDistanceToNow, parseISO } from "date-fns";
 import {
   AlertCircle,
+  ArrowUpRight,
   Bell,
   CheckCircle,
   Clock,
@@ -169,7 +171,9 @@ function NotificationRow({
             )}
           </div>
           {notification.body && (
-            <p className="text-sm text-muted-foreground mb-2">{notification.body}</p>
+            <p className="text-sm text-muted-foreground mb-2 whitespace-pre-line">
+              {notification.body}
+            </p>
           )}
           <div className="flex items-center justify-between gap-3">
             <p className="text-xs text-muted-foreground">
@@ -177,17 +181,35 @@ function NotificationRow({
                 addSuffix: true,
               })}
             </p>
-            {isUnread && onMark && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => onMark(notification.id)}
-                disabled={disabled}
-                className="h-7 text-xs"
-              >
-                Mark as read
-              </Button>
-            )}
+            <div className="flex items-center gap-2">
+              {notification.link_url ? (
+                <Button
+                  asChild
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-xs"
+                  onClick={() => {
+                    if (isUnread && onMark) onMark(notification.id);
+                  }}
+                >
+                  <Link href={notification.link_url}>
+                    View
+                    <ArrowUpRight className="w-3 h-3 ml-1" />
+                  </Link>
+                </Button>
+              ) : null}
+              {isUnread && onMark && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onMark(notification.id)}
+                  disabled={disabled}
+                  className="h-7 text-xs"
+                >
+                  Mark as read
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       </div>

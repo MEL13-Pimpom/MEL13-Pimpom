@@ -1,5 +1,5 @@
 import { format, parseISO } from "date-fns";
-import { Megaphone } from "lucide-react";
+import { Inbox, Megaphone } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -16,6 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { NotificationList } from "@/components/shared/notification-list";
 import { requireRole } from "@/lib/auth/get-current-profile";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { BroadcastForm } from "./broadcast-form";
@@ -30,15 +31,26 @@ interface BroadcastGroup {
 }
 
 export default async function AdminNotificationsPage() {
-  await requireRole("admin");
+  const admin = await requireRole("admin");
   const supabase = await createSupabaseServerClient();
 
-  const { data: recent } = await supabase
-    .from("notifications")
-    .select("title, body, created_at")
-    .eq("type", "broadcast")
-    .order("created_at", { ascending: false })
-    .limit(500);
+  const [{ data: inboxData }, { data: recent }] = await Promise.all([
+    supabase
+      .from("notifications")
+      .select("*")
+      .eq("user_id", admin.id)
+      .order("created_at", { ascending: false })
+      .limit(200),
+    supabase
+      .from("notifications")
+      .select("title, body, created_at")
+      .eq("type", "broadcast")
+      .order("created_at", { ascending: false })
+      .limit(500),
+  ]);
+
+  const inbox = inboxData ?? [];
+  const unreadCount = inbox.filter((n) => !n.read_at).length;
 
   const grouped: BroadcastGroup[] = [];
   const seen = new Map<string, BroadcastGroup>();
@@ -67,15 +79,35 @@ export default async function AdminNotificationsPage() {
           Notification Management
         </h1>
         <p className="text-muted-foreground">
-          Broadcast announcements to residents, collectors, or everyone.
+          Review incoming notifications and broadcast announcements to your audience.
         </p>
       </div>
 
-      <Tabs defaultValue="send">
+      <Tabs defaultValue={unreadCount > 0 ? "inbox" : "send"}>
         <TabsList>
+          <TabsTrigger value="inbox">
+            Inbox
+            {unreadCount > 0 ? (
+              <span className="ml-2 inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full text-[11px] bg-primary text-primary-foreground">
+                {unreadCount}
+              </span>
+            ) : null}
+          </TabsTrigger>
           <TabsTrigger value="send">Send broadcast</TabsTrigger>
           <TabsTrigger value="history">History</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="inbox" className="mt-6">
+          <div className="max-w-4xl space-y-3">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Inbox className="w-4 h-4" />
+              {unreadCount > 0
+                ? `You have ${unreadCount} unread notification${unreadCount === 1 ? "" : "s"}.`
+                : "All caught up — no unread notifications."}
+            </div>
+            <NotificationList notifications={inbox} />
+          </div>
+        </TabsContent>
 
         <TabsContent value="send" className="mt-6">
           <Card className="max-w-2xl">

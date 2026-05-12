@@ -280,6 +280,10 @@ export type Database = {
     Views: { [_ in never]: never };
     Functions: {
       is_admin: { Args: Record<string, never>; Returns: boolean };
+      notify_admins_role_change_request: {
+        Args: { p_title: string; p_body: string; p_link_url: string };
+        Returns: number;
+      };
     };
     Enums: {
       notification_type:

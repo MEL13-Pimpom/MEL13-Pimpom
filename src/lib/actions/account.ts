@@ -117,29 +117,22 @@ export async function requestRoleChangeAction(
 
   const supabase = await createSupabaseServerClient();
 
-  const { data: admins, error: adminsError } = await supabase
-    .from("profiles")
-    .select("id")
-    .eq("role", "admin");
-
-  if (adminsError) return { ok: false, error: adminsError.message };
-  if (!admins || admins.length === 0) {
-    return { ok: false, error: "No administrators are available to review your request." };
-  }
-
   const title = `Role change requested: ${profile.full_name}`;
   const body = `${profile.full_name} (currently ${ROLE_LABEL[profile.role]}) is requesting the ${ROLE_LABEL[parsed.data.requestedRole]} role.\n\nReason: ${parsed.data.reason}`;
+  const linkUrl = `/admin/users?focus=${profile.id}`;
 
-  const rows = admins.map((a) => ({
-    user_id: a.id,
-    type: "role_change_request" as const,
-    title,
-    body,
-    link_url: `/admin/users?focus=${profile.id}`,
-  }));
+  const { data: inserted, error: rpcError } = await supabase.rpc(
+    "notify_admins_role_change_request",
+    { p_title: title, p_body: body, p_link_url: linkUrl },
+  );
 
-  const { error: insertError } = await supabase.from("notifications").insert(rows);
-  if (insertError) return { ok: false, error: insertError.message };
+  if (rpcError) return { ok: false, error: rpcError.message };
+  if (!inserted || inserted === 0) {
+    return {
+      ok: false,
+      error: "No administrators are available to review your request.",
+    };
+  }
 
   revalidatePath("/admin/notifications");
   revalidatePath("/admin/users");

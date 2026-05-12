@@ -2,7 +2,7 @@ import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import type { Database } from "@/lib/types/database";
 
-const PROTECTED_PREFIXES = ["/resident", "/admin", "/collector"];
+const PROTECTED_PREFIXES = ["/resident", "/admin", "/collector", "/account"];
 const AUTH_PAGES = ["/login", "/signup", "/forgot-password"];
 
 export async function updateSession(request: NextRequest) {

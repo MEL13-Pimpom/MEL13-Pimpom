@@ -13,6 +13,7 @@ export default async function CollectorLayout({
     <DashboardShell
       userName={profile.full_name || "Collector"}
       userRole={profile.role}
+      avatarUrl={profile.avatar_url}
       navItems={COLLECTOR_NAV}
     >
       {children}

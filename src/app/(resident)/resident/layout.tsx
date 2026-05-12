@@ -13,6 +13,7 @@ export default async function ResidentLayout({
     <DashboardShell
       userName={profile.full_name || "Resident"}
       userRole={profile.role}
+      avatarUrl={profile.avatar_url}
       navItems={RESIDENT_NAV}
     >
       {children}

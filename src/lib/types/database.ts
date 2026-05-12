@@ -278,14 +278,18 @@ export type Database = {
       };
     };
     Views: { [_ in never]: never };
-    Functions: { [_ in never]: never };
+    Functions: {
+      is_admin: { Args: Record<string, never>; Returns: boolean };
+    };
     Enums: {
       notification_type:
         | "request_update"
         | "task_assigned"
         | "schedule_change"
         | "broadcast"
-        | "system";
+        | "system"
+        | "role_change_request"
+        | "role_change_response";
       request_status:
         | "pending"
         | "approved"

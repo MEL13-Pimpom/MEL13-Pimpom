@@ -13,6 +13,7 @@ export default async function AdminLayout({
     <DashboardShell
       userName={profile.full_name || "Admin"}
       userRole={profile.role}
+      avatarUrl={profile.avatar_url}
       navItems={ADMIN_NAV}
     >
       {children}

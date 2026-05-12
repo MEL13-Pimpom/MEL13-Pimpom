@@ -13,6 +13,7 @@ export const ADMIN_NAV: NavItem[] = [
   { href: "/admin/requests", label: "Manage Requests", icon: "ClipboardList" },
   { href: "/admin/schedule", label: "Schedule", icon: "Calendar" },
   { href: "/admin/routes", label: "Route Assignment", icon: "MapPinned" },
+  { href: "/admin/users", label: "Manage Users", icon: "Users" },
   { href: "/admin/notifications", label: "Notifications", icon: "Bell" },
   { href: "/admin/reports", label: "Reports", icon: "BarChart3" },
 ];
@@ -21,6 +22,7 @@ export const COLLECTOR_NAV: NavItem[] = [
   { href: "/collector/dashboard", label: "Dashboard", icon: "LayoutDashboard" },
   { href: "/collector/tasks", label: "Assigned Tasks", icon: "ClipboardList" },
   { href: "/collector/route", label: "Today's Route", icon: "Route" },
+  { href: "/collector/history", label: "History", icon: "History" },
   { href: "/collector/notifications", label: "Notifications", icon: "Bell" },
 ];
 

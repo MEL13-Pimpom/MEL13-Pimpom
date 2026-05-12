@@ -8,10 +8,12 @@ import {
   Calendar,
   ClipboardList,
   FileText,
+  History,
   LayoutDashboard,
   MapPinned,
   PlusCircle,
   Route,
+  Users,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -22,10 +24,12 @@ const ICON_MAP: Record<string, LucideIcon> = {
   Calendar,
   ClipboardList,
   FileText,
+  History,
   LayoutDashboard,
   MapPinned,
   PlusCircle,
   Route,
+  Users,
 };
 
 export interface NavItem {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -62,12 +62,29 @@ const ROLE_LABELS: Record<UserRole, string> = {
   collector: "Collector",
 };
 
+function getStoragePath(publicUrl: string, bucket: string): string | null {
+  const marker = `/storage/v1/object/public/${bucket}/`;
+  const idx = publicUrl.indexOf(marker);
+  if (idx === -1) return null;
+  return publicUrl.slice(idx + marker.length);
+}
+
 export function ProfileForm({ userId, defaultValues, currentRole }: Props) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [avatarUrl, setAvatarUrl] = useState<string>(defaultValues.avatarUrl ?? "");
+  const blobUrlRef = useRef<string | null>(null);
+
+  const [savedAvatarUrl, setSavedAvatarUrl] = useState(defaultValues.avatarUrl ?? "");
+  const [previewUrl, setPreviewUrl] = useState(defaultValues.avatarUrl ?? "");
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [saving, startSaving] = useTransition();
+
+  useEffect(() => {
+    return () => {
+      if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current);
+    };
+  }, []);
 
   const form = useForm<UpdateProfileInput>({
     resolver: zodResolver(updateProfileSchema),
@@ -82,7 +99,7 @@ export function ProfileForm({ userId, defaultValues, currentRole }: Props) {
     .join("")
     .toUpperCase();
 
-  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > 3 * 1024 * 1024) {
@@ -90,31 +107,61 @@ export function ProfileForm({ userId, defaultValues, currentRole }: Props) {
       return;
     }
 
-    setUploading(true);
-    try {
-      const supabase = createSupabaseBrowserClient();
-      const ext = file.name.split(".").pop()?.toLowerCase() ?? "jpg";
-      const path = `${userId}/avatar-${Date.now()}.${ext}`;
-      const { error: uploadError } = await supabase.storage
-        .from("avatars")
-        .upload(path, file, { cacheControl: "3600", upsert: false });
-      if (uploadError) throw uploadError;
-
-      const { data } = supabase.storage.from("avatars").getPublicUrl(path);
-      setAvatarUrl(data.publicUrl);
-      form.setValue("avatarUrl", data.publicUrl, { shouldDirty: true });
-      toast.success("Avatar uploaded. Don't forget to save.");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Avatar upload failed.");
-    } finally {
-      setUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
+    if (blobUrlRef.current) {
+      URL.revokeObjectURL(blobUrlRef.current);
     }
+
+    const blobUrl = URL.createObjectURL(file);
+    blobUrlRef.current = blobUrl;
+    setPendingFile(file);
+    setPreviewUrl(blobUrl);
+    form.setValue("avatarUrl", blobUrl, { shouldDirty: true });
+
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const onSubmit = (values: UpdateProfileInput) => {
     startSaving(async () => {
-      const result = await updateProfileAction({ ...values, avatarUrl });
+      let finalAvatarUrl = savedAvatarUrl;
+
+      if (pendingFile) {
+        setUploading(true);
+        try {
+          const supabase = createSupabaseBrowserClient();
+          const ext = pendingFile.name.split(".").pop()?.toLowerCase() ?? "jpg";
+          const path = `${userId}/avatar-${Date.now()}.${ext}`;
+
+          const { error: uploadError } = await supabase.storage
+            .from("avatars")
+            .upload(path, pendingFile, { cacheControl: "3600", upsert: false });
+          if (uploadError) throw uploadError;
+
+          const { data } = supabase.storage.from("avatars").getPublicUrl(path);
+          finalAvatarUrl = data.publicUrl;
+
+          if (savedAvatarUrl) {
+            const oldPath = getStoragePath(savedAvatarUrl, "avatars");
+            if (oldPath) {
+              await supabase.storage.from("avatars").remove([oldPath]);
+            }
+          }
+        } catch (err) {
+          setUploading(false);
+          toast.error(err instanceof Error ? err.message : "Avatar upload failed.");
+          return;
+        }
+        setUploading(false);
+
+        if (blobUrlRef.current) {
+          URL.revokeObjectURL(blobUrlRef.current);
+          blobUrlRef.current = null;
+        }
+        setPendingFile(null);
+        setSavedAvatarUrl(finalAvatarUrl);
+        setPreviewUrl(finalAvatarUrl);
+      }
+
+      const result = await updateProfileAction({ ...values, avatarUrl: finalAvatarUrl });
       if (!result.ok) {
         toast.error(result.error);
         return;
@@ -142,7 +189,7 @@ export function ProfileForm({ userId, defaultValues, currentRole }: Props) {
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <section className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
                 <Avatar className="h-24 w-24 border-2 border-border">
-                  {avatarUrl ? <AvatarImage src={avatarUrl} alt={fullName} /> : null}
+                  {previewUrl ? <AvatarImage src={previewUrl} alt={fullName} /> : null}
                   <AvatarFallback className="text-lg bg-primary/10 text-primary">
                     {initials}
                   </AvatarFallback>

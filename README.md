@@ -78,8 +78,9 @@ src/
 │  ├─ auth/            # Server helpers for the current profile + role gating
 │  ├─ actions/         # Server actions grouped by domain
 │  ├─ validations/     # zod schemas grouped by domain
+│  ├─ maps/            # Nominatim geocoding + Google Maps route URL helpers
 │  ├─ types/           # Generated database types
-│  └─ utils.ts         # cn() helper
+│  └─ utils.ts         # cn() helper (shadcn convention)
 ├─ stores/             # Zustand stores
 └─ middleware.ts       # Session refresh + protected-route gating
 ```

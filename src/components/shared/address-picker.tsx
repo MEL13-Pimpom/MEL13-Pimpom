@@ -5,7 +5,7 @@ import L from "leaflet";
 import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from "react-leaflet";
 import { Loader2, MapPin } from "lucide-react";
 
-import { geocodeAddress } from "@/lib/utils/geocoding";
+import { geocodeAddress } from "@/lib/maps/geocoding";
 import "leaflet/dist/leaflet.css";
 
 // Fix Leaflet default marker icons in Next.js (assets aren't bundled by default)

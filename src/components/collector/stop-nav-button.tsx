@@ -3,7 +3,7 @@
 import { Navigation } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { buildSingleStopUrl, type Stop } from "@/lib/utils/google-maps";
+import { buildSingleStopUrl, type Stop } from "@/lib/maps/google-maps";
 
 interface Props {
   stop: Stop;

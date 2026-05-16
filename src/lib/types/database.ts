@@ -57,7 +57,10 @@ export type Database = {
         Row: {
           address: string;
           created_at: string;
+          geocoding_source: string;
           id: string;
+          latitude: number;
+          longitude: number;
           notes: string | null;
           photo_url: string | null;
           preferred_date: string;
@@ -74,7 +77,10 @@ export type Database = {
         Insert: {
           address: string;
           created_at?: string;
+          geocoding_source: string;
           id?: string;
+          latitude: number;
+          longitude: number;
           notes?: string | null;
           photo_url?: string | null;
           preferred_date: string;
@@ -91,7 +97,10 @@ export type Database = {
         Update: {
           address?: string;
           created_at?: string;
+          geocoding_source?: string;
           id?: string;
+          latitude?: number;
+          longitude?: number;
           notes?: string | null;
           photo_url?: string | null;
           preferred_date?: string;

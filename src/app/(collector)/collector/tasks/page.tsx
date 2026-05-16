@@ -7,6 +7,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { REQUEST_TYPE_LABELS } from "@/lib/validations/request";
 import type { RequestType } from "@/lib/types/database";
 import { StopActions } from "./stop-actions";
+import { StopNavButton } from "@/components/collector/stop-nav-button";
 
 export const metadata = { title: "My Tasks" };
 
@@ -17,7 +18,7 @@ export default async function CollectorTasksPage() {
   const { data: routesData } = await supabase
     .from("routes")
     .select(
-      "id, name, scheduled_date, status, stops:route_stops(id, stop_order, status, notes, arrived_at, completed_at, request:pickup_requests(id, address, type, scheduled_time_window, preferred_time_window, weight_kg_estimate, notes, resident:profiles!pickup_requests_resident_id_fkey(full_name, phone)))",
+      "id, name, scheduled_date, status, stops:route_stops(id, stop_order, status, notes, arrived_at, completed_at, request:pickup_requests(id, address, latitude, longitude, type, scheduled_time_window, preferred_time_window, weight_kg_estimate, notes, resident:profiles!pickup_requests_resident_id_fkey(full_name, phone)))",
     )
     .eq("collector_id", profile.id)
     .in("status", ["planned", "in_progress"])
@@ -126,9 +127,22 @@ export default async function CollectorTasksPage() {
                       <StopStatusBadge status={stop.status} />
                     </div>
 
-                    <div className="flex items-start gap-2 text-sm text-foreground">
-                      <MapPin className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                      <span>{stop.request?.address ?? "—"}</span>
+                    <div className="flex items-start justify-between gap-3 text-sm text-foreground">
+                      <div className="flex items-start gap-2">
+                        <MapPin className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                        <span>{stop.request?.address ?? "—"}</span>
+                      </div>
+                      {stop.request &&
+                        typeof stop.request.latitude === "number" &&
+                        typeof stop.request.longitude === "number" && (
+                          <StopNavButton
+                            stop={{
+                              address: stop.request.address,
+                              latitude: stop.request.latitude,
+                              longitude: stop.request.longitude,
+                            }}
+                          />
+                        )}
                     </div>
 
                     {(stop.request?.scheduled_time_window ||

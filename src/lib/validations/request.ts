@@ -32,7 +32,16 @@ export const REQUEST_TYPE_LABELS: Record<(typeof REQUEST_TYPES)[number], string>
 
 export const createRequestSchema = z.object({
   type: z.enum(REQUEST_TYPES),
-  address: z.string().min(10, { message: "Address must be at least 10 characters." }),
+  address: z.string().min(5, { message: "Address must be at least 5 characters." }),
+  latitude: z.number({
+    required_error: "Please confirm the pickup location on the map.",
+    invalid_type_error: "Please confirm the pickup location on the map.",
+  }),
+  longitude: z.number({
+    required_error: "Please confirm the pickup location on the map.",
+    invalid_type_error: "Please confirm the pickup location on the map.",
+  }),
+  geocodingSource: z.enum(["auto", "manual"]),
   weightKgEstimate: z
     .number({ invalid_type_error: "Weight must be a number." })
     .positive({ message: "Weight must be positive." })

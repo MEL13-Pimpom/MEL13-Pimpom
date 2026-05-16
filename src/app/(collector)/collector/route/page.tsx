@@ -8,6 +8,8 @@ import { REQUEST_TYPE_LABELS } from "@/lib/validations/request";
 import type { RequestType } from "@/lib/types/database";
 import { StopActions } from "../tasks/stop-actions";
 import { RouteControls } from "./route-controls";
+import { RouteActions } from "@/components/collector/route-actions";
+import { StopNavButton } from "@/components/collector/stop-nav-button";
 
 export const metadata = { title: "Today's Route" };
 
@@ -18,7 +20,7 @@ export default async function CollectorRoutePage() {
   const { data: route } = await supabase
     .from("routes")
     .select(
-      "id, name, scheduled_date, status, notes, stops:route_stops(id, stop_order, status, notes, arrived_at, completed_at, request:pickup_requests(id, address, type, scheduled_time_window, preferred_time_window, weight_kg_estimate, notes, resident:profiles!pickup_requests_resident_id_fkey(full_name, phone)))",
+      "id, name, scheduled_date, status, notes, stops:route_stops(id, stop_order, status, notes, arrived_at, completed_at, request:pickup_requests(id, address, latitude, longitude, type, scheduled_time_window, preferred_time_window, weight_kg_estimate, notes, resident:profiles!pickup_requests_resident_id_fkey(full_name, phone)))",
     )
     .eq("collector_id", profile.id)
     .in("status", ["planned", "in_progress"])
@@ -61,6 +63,39 @@ export default async function CollectorRoutePage() {
       return { ...s, request: request ? { ...request, resident } : null };
     })
     .sort((a, b) => a.stop_order - b.stop_order);
+
+  const navStops = stops
+    .map((s) =>
+      s.request &&
+      typeof s.request.latitude === "number" &&
+      typeof s.request.longitude === "number"
+        ? {
+            address: s.request.address,
+            latitude: s.request.latitude,
+            longitude: s.request.longitude,
+          }
+        : null,
+    )
+    .filter((s): s is { address: string; latitude: number; longitude: number } =>
+      s !== null,
+    );
+
+  const remainingNavStops = stops
+    .filter((s) => s.status !== "completed" && s.status !== "skipped")
+    .map((s) =>
+      s.request &&
+      typeof s.request.latitude === "number" &&
+      typeof s.request.longitude === "number"
+        ? {
+            address: s.request.address,
+            latitude: s.request.latitude,
+            longitude: s.request.longitude,
+          }
+        : null,
+    )
+    .filter((s): s is { address: string; latitude: number; longitude: number } =>
+      s !== null,
+    );
 
   const total = stops.length;
   const completedCount = stops.filter((s) => s.status === "completed").length;
@@ -130,8 +165,13 @@ export default async function CollectorRoutePage() {
       </Card>
 
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between gap-3">
           <CardTitle>Stops</CardTitle>
+          {navStops.length > 0 && (
+            <RouteActions
+              stops={remainingNavStops.length > 0 ? remainingNavStops : navStops}
+            />
+          )}
         </CardHeader>
         <CardContent>
           {stops.length === 0 ? (
@@ -190,9 +230,22 @@ export default async function CollectorRoutePage() {
                           )}
                         </div>
 
-                        <div className="flex items-start gap-2 text-foreground">
-                          <MapPin className="w-5 h-5 text-muted-foreground mt-0.5 flex-shrink-0" />
-                          <p>{stop.request?.address ?? "—"}</p>
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-start gap-2 text-foreground">
+                            <MapPin className="w-5 h-5 text-muted-foreground mt-0.5 flex-shrink-0" />
+                            <p>{stop.request?.address ?? "—"}</p>
+                          </div>
+                          {stop.request &&
+                            typeof stop.request.latitude === "number" &&
+                            typeof stop.request.longitude === "number" && (
+                              <StopNavButton
+                                stop={{
+                                  address: stop.request.address,
+                                  latitude: stop.request.latitude,
+                                  longitude: stop.request.longitude,
+                                }}
+                              />
+                            )}
                         </div>
 
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm text-muted-foreground">

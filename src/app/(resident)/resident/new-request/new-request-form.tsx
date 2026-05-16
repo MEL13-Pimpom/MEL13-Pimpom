@@ -37,6 +37,7 @@ import {
   TIME_WINDOW_LABELS,
   type CreateRequestInput,
 } from "@/lib/validations/request";
+import { AddressPicker } from "@/components/shared/address-picker-wrapper";
 
 const WASTE_TYPE_EMOJI: Record<(typeof REQUEST_TYPES)[number], string> = {
   paper: "📄",
@@ -65,6 +66,9 @@ export function NewRequestForm({ userId, defaultAddress }: Props) {
     defaultValues: {
       type: "mixed",
       address: defaultAddress,
+      latitude: undefined,
+      longitude: undefined,
+      geocodingSource: undefined,
       weightKgEstimate: undefined,
       preferredDate: "",
       preferredTimeWindow: "morning",
@@ -74,6 +78,29 @@ export function NewRequestForm({ userId, defaultAddress }: Props) {
   });
 
   const selectedType = form.watch("type");
+  const watchedAddress = form.watch("address") ?? "";
+  const watchedLat = form.watch("latitude");
+  const watchedLng = form.watch("longitude");
+  const watchedSource = form.watch("geocodingSource");
+  const coords =
+    typeof watchedLat === "number" && typeof watchedLng === "number"
+      ? { lat: watchedLat, lng: watchedLng }
+      : null;
+  const locationMissing = coords === null;
+  const handlePickerChange = (
+    next: { lat: number; lng: number } | null,
+    source: "auto" | "manual" | null,
+  ) => {
+    if (next && source) {
+      form.setValue("latitude", next.lat, { shouldValidate: true });
+      form.setValue("longitude", next.lng, { shouldValidate: true });
+      form.setValue("geocodingSource", source, { shouldValidate: true });
+    } else {
+      form.resetField("latitude");
+      form.resetField("longitude");
+      form.resetField("geocodingSource");
+    }
+  };
 
   const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -273,6 +300,21 @@ export function NewRequestForm({ userId, defaultAddress }: Props) {
                 )}
               />
 
+              <FormItem>
+                <FormLabel>Confirm location on the map</FormLabel>
+                <AddressPicker
+                  address={watchedAddress}
+                  value={coords}
+                  source={watchedSource ?? null}
+                  onChange={handlePickerChange}
+                />
+                {form.formState.errors.latitude && (
+                  <p className="text-sm text-destructive">
+                    {form.formState.errors.latitude.message}
+                  </p>
+                )}
+              </FormItem>
+
               <FormField
                 control={form.control}
                 name="notes"
@@ -359,10 +401,19 @@ export function NewRequestForm({ userId, defaultAddress }: Props) {
               </Button>
               <Button
                 type="submit"
-                disabled={submitting || uploading}
+                disabled={
+                  submitting ||
+                  uploading ||
+                  locationMissing ||
+                  watchedAddress.trim().length < 5
+                }
                 className="h-11 px-6"
               >
-                {submitting ? "Submitting..." : "Submit request"}
+                {submitting
+                  ? "Submitting..."
+                  : locationMissing
+                    ? "Please confirm the location first"
+                    : "Submit request"}
               </Button>
             </div>
           </form>

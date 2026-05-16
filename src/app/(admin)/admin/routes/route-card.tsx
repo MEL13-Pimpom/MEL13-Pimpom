@@ -128,7 +128,7 @@ export function RouteCard({ route, collectors, assignableRequests }: Props) {
               </p>
             )}
           </div>
-          <div className="w-full md:w-64">
+          <div className="w-full md:w-48 flex justify-end">
             <Select
               value={route.collector?.id ?? UNASSIGNED}
               onValueChange={handleAssignCollector}

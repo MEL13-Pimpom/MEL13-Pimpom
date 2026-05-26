@@ -1,7 +1,16 @@
-import { BarChart3, FileText, Recycle, TrendingUp } from "lucide-react";
-import { format, parseISO, subMonths, startOfMonth } from "date-fns";
+import { BarChart3, FileText, Recycle, ShieldCheck, TrendingUp } from "lucide-react";
+import { format, formatDistanceToNow, parseISO, subMonths, startOfMonth } from "date-fns";
 import { StatsCard } from "@/components/shared/stats-card";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { requireRole } from "@/lib/auth/get-current-profile";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { REQUEST_TYPE_LABELS } from "@/lib/validations/request";
@@ -27,13 +36,26 @@ export default async function AdminReportsPage() {
 
   const sixMonthsAgo = subMonths(startOfMonth(new Date()), 5).toISOString();
 
-  const [{ data: allRequests }, { data: recentRequests }] = await Promise.all([
+  const [
+    { data: allRequests },
+    { data: recentRequests },
+    { data: auditData },
+  ] = await Promise.all([
     supabase.from("pickup_requests").select("id, status, type, weight_kg_estimate"),
     supabase
       .from("pickup_requests")
       .select("id, status, type, weight_kg_estimate, created_at")
       .gte("created_at", sixMonthsAgo),
+    supabase
+      .from("audit_logs")
+      .select(
+        "id, action, actor_id, actor_name, target_type, target_id, old_value, new_value, ip_address, created_at",
+      )
+      .order("created_at", { ascending: false })
+      .limit(100),
   ]);
+
+  const auditLogs = auditData ?? [];
 
   const all = allRequests ?? [];
   const total = all.length;
@@ -142,6 +164,100 @@ export default async function AdminReportsPage() {
                 <p className="text-2xl font-semibold">{s.count}</p>
               </div>
             ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="w-5 h-5 text-primary" />
+            <CardTitle>System Audit Logs</CardTitle>
+          </div>
+          <CardDescription>
+            Latest {auditLogs.length} actions across requests, routes, and user
+            management.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>When</TableHead>
+                  <TableHead>Actor</TableHead>
+                  <TableHead>Action</TableHead>
+                  <TableHead>Target</TableHead>
+                  <TableHead>Change</TableHead>
+                  <TableHead>IP</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {auditLogs.length === 0 ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={6}
+                      className="text-center py-12 text-muted-foreground"
+                    >
+                      No audit events recorded yet.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  auditLogs.map((log) => (
+                    <TableRow key={log.id}>
+                      <TableCell
+                        className="whitespace-nowrap text-xs"
+                        title={format(parseISO(log.created_at), "yyyy-MM-dd HH:mm:ss")}
+                      >
+                        {formatDistanceToNow(parseISO(log.created_at), {
+                          addSuffix: true,
+                        })}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap text-sm">
+                        {log.actor_name}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="font-mono text-xs">
+                          {log.action}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {log.target_type ? (
+                          <>
+                            <span className="font-medium">{log.target_type}</span>
+                            {log.target_id ? (
+                              <span className="ml-1 font-mono">
+                                {String(log.target_id).slice(0, 8)}
+                              </span>
+                            ) : null}
+                          </>
+                        ) : (
+                          "—"
+                        )}
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground max-w-xs">
+                        {log.old_value || log.new_value ? (
+                          <span>
+                            {log.old_value ? (
+                              <span className="line-through opacity-70">
+                                {log.old_value}
+                              </span>
+                            ) : null}
+                            {log.old_value && log.new_value ? " → " : ""}
+                            {log.new_value ?? ""}
+                          </span>
+                        ) : (
+                          "—"
+                        )}
+                      </TableCell>
+                      <TableCell className="text-xs font-mono text-muted-foreground">
+                        {log.ip_address ? String(log.ip_address) : "—"}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
           </div>
         </CardContent>
       </Card>

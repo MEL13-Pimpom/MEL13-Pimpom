@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { format, parseISO } from "date-fns";
-import { Calendar, MapPin, Plus, Trash2, User } from "lucide-react";
+import { Calendar, Clock, MapPin, Plus, Trash2, User } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,6 +27,7 @@ interface RouteData {
   id: string;
   name: string;
   scheduledDate: string;
+  timeWindow: string;
   status: RouteStatus;
   notes: string | null;
   collector: { id: string; full_name: string } | null;
@@ -114,6 +115,10 @@ export function RouteCard({ route, collectors, assignableRequests }: Props) {
                 <Calendar className="w-4 h-4" />
                 {format(parseISO(route.scheduledDate), "MMM d, yyyy")}
               </span>
+              <span className="flex items-center gap-1 capitalize">
+                <Clock className="w-4 h-4" />
+                {route.timeWindow}
+              </span>
               <span className="flex items-center gap-1">
                 <User className="w-4 h-4" />
                 {route.collector?.full_name ?? "Unassigned"}
@@ -194,12 +199,12 @@ export function RouteCard({ route, collectors, assignableRequests }: Props) {
           </ol>
         )}
 
-        {assignableRequests.length > 0 && (
+        {assignableRequests.length > 0 ? (
           <div className="flex gap-2 items-end pt-2 border-t border-border">
             <div className="flex-1">
               <Select value={stopToAdd} onValueChange={setStopToAdd}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Add an approved request..." />
+                  <SelectValue placeholder="Add a request that matches this date & window..." />
                 </SelectTrigger>
                 <SelectContent>
                   {assignableRequests.map((r) => (
@@ -220,6 +225,10 @@ export function RouteCard({ route, collectors, assignableRequests }: Props) {
               Add stop
             </Button>
           </div>
+        ) : (
+          <p className="text-xs text-muted-foreground italic pt-2 border-t border-border">
+            No unassigned requests match this route&apos;s date &amp; time window.
+          </p>
         )}
       </CardContent>
     </Card>

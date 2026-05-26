@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth/get-current-profile";
+import { audit } from "@/lib/audit/log";
 import {
   createRequestSchema,
   rescheduleRequestSchema,
@@ -51,6 +52,14 @@ export async function createRequestAction(
     return { ok: false, error: error?.message ?? "Could not create request." };
   }
 
+  await audit({
+    actor: profile,
+    action: "request.create",
+    targetType: "pickup_request",
+    targetId: data.id,
+    newValue: `${parsed.data.type} • ${parsed.data.preferredDate} ${parsed.data.preferredTimeWindow}`,
+  });
+
   revalidatePath("/resident/requests");
   revalidatePath("/resident/dashboard");
   return { ok: true, id: data.id };
@@ -84,6 +93,15 @@ export async function cancelRequestAction(requestId: string): Promise<ActionResu
   if (error) {
     return { ok: false, error: error.message };
   }
+
+  await audit({
+    actor: profile,
+    action: "request.cancel",
+    targetType: "pickup_request",
+    targetId: requestId,
+    oldValue: existing.status,
+    newValue: "cancelled",
+  });
 
   revalidatePath("/resident/requests");
   revalidatePath("/resident/dashboard");
@@ -129,6 +147,14 @@ export async function rescheduleRequestAction(
   if (error) {
     return { ok: false, error: error.message };
   }
+
+  await audit({
+    actor: profile,
+    action: "request.reschedule",
+    targetType: "pickup_request",
+    targetId: requestId,
+    newValue: `${parsed.data.preferredDate} ${parsed.data.preferredTimeWindow}`,
+  });
 
   revalidatePath("/resident/requests");
   revalidatePath("/resident/dashboard");

@@ -28,6 +28,10 @@ import {
   createRouteSchema,
   type CreateRouteInput,
 } from "@/lib/validations/admin";
+import {
+  TIME_WINDOWS,
+  TIME_WINDOW_LABELS,
+} from "@/lib/validations/request";
 
 const UNASSIGNED = "__unassigned";
 
@@ -43,6 +47,7 @@ export function CreateRouteForm({ collectors }: Props) {
     defaultValues: {
       name: "",
       scheduledDate: new Date().toISOString().split("T")[0],
+      timeWindow: "morning",
       collectorId: "",
       notes: "",
     },
@@ -59,6 +64,7 @@ export function CreateRouteForm({ collectors }: Props) {
       form.reset({
         name: "",
         scheduledDate: new Date().toISOString().split("T")[0],
+        timeWindow: "morning",
         collectorId: "",
         notes: "",
       });
@@ -95,6 +101,30 @@ export function CreateRouteForm({ collectors }: Props) {
                   {...field}
                 />
               </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="timeWindow"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Time window</FormLabel>
+              <Select value={field.value} onValueChange={field.onChange}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Pick a time window" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {TIME_WINDOWS.map((w) => (
+                    <SelectItem key={w} value={w}>
+                      {TIME_WINDOW_LABELS[w]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <FormMessage />
             </FormItem>
           )}

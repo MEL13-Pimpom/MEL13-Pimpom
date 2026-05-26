@@ -85,7 +85,6 @@ src/
 └─ middleware.ts       # Session refresh + protected-route gating
 ```
 
-See [CLAUDE.md](./CLAUDE.md) for in-depth conventions and architecture notes.
 
 ## How to Run
 

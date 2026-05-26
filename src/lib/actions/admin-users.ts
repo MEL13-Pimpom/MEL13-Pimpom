@@ -4,6 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth/get-current-profile";
+import { audit } from "@/lib/audit/log";
 import {
   adminUpdateUserSchema,
   type AdminUpdateUserInput,
@@ -85,6 +86,25 @@ export async function adminUpdateUserAction(
     });
   }
 
+  if (roleChanged) {
+    await audit({
+      actor: admin,
+      action: "user.role_change",
+      targetType: "profile",
+      targetId: target.id,
+      oldValue: target.role,
+      newValue: parsed.data.role,
+    });
+  } else {
+    await audit({
+      actor: admin,
+      action: "user.update",
+      targetType: "profile",
+      targetId: target.id,
+      newValue: parsed.data.fullName,
+    });
+  }
+
   revalidatePath("/admin/users");
   revalidatePath("/admin/dashboard");
   return { ok: true };
@@ -116,6 +136,13 @@ export async function adminDeleteUserAction(
 
   const { error } = await adminClient.auth.admin.deleteUser(userId);
   if (error) return { ok: false, error: error.message };
+
+  await audit({
+    actor: admin,
+    action: "user.delete",
+    targetType: "profile",
+    targetId: userId,
+  });
 
   revalidatePath("/admin/users");
   revalidatePath("/admin/dashboard");

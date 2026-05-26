@@ -1,5 +1,5 @@
 import { format, parseISO } from "date-fns";
-import { Calendar, MapPin, Package } from "lucide-react";
+import { Calendar, Clock, MapPin, Package } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -23,12 +23,12 @@ export default async function AdminRoutesPage() {
   const [
     { data: routesData },
     { data: collectorsData },
-    { data: assignedRequestIdsData },
+    { data: assignedStopsData },
   ] = await Promise.all([
     supabase
       .from("routes")
       .select(
-        "id, name, scheduled_date, status, notes, collector:profiles!routes_collector_id_fkey(id, full_name), stops:route_stops(id, stop_order, status, request:pickup_requests(id, address, type, scheduled_time_window, preferred_time_window))",
+        "id, name, scheduled_date, time_window, status, notes, collector:profiles!routes_collector_id_fkey(id, full_name), stops:route_stops(id, stop_order, status, request:pickup_requests(id, address, type, scheduled_time_window, preferred_time_window))",
       )
       .order("scheduled_date", { ascending: false }),
     supabase
@@ -36,11 +36,15 @@ export default async function AdminRoutesPage() {
       .select("id, full_name")
       .eq("role", "collector")
       .order("full_name", { ascending: true }),
-    supabase.from("route_stops").select("request_id"),
+    supabase.from("route_stops").select("request_id, status"),
   ]);
 
-  const assignedRequestIds = new Set(
-    (assignedRequestIdsData ?? []).map((r) => r.request_id),
+  // A request is considered "occupied" only if it has an active stop.
+  // Missed/skipped stops free the request so it can be added to another route.
+  const activelyAssignedRequestIds = new Set(
+    (assignedStopsData ?? [])
+      .filter((s) => s.status !== "missed" && s.status !== "skipped")
+      .map((s) => s.request_id),
   );
 
   const { data: assignableRequests } = await supabase
@@ -51,9 +55,13 @@ export default async function AdminRoutesPage() {
     .in("status", ["approved", "scheduled"])
     .order("preferred_date", { ascending: true });
 
-  const unassigned = (assignableRequests ?? []).filter(
-    (r) => !assignedRequestIds.has(r.id),
-  );
+  const unassigned = (assignableRequests ?? [])
+    .filter((r) => !activelyAssignedRequestIds.has(r.id))
+    .map((r) => ({
+      ...r,
+      effectiveDate: r.scheduled_date ?? r.preferred_date,
+      effectiveWindow: r.scheduled_time_window ?? r.preferred_time_window,
+    }));
 
   const routes = (routesData ?? []).map((r) => ({
     ...r,
@@ -75,7 +83,8 @@ export default async function AdminRoutesPage() {
           Route Assignment
         </h1>
         <p className="text-muted-foreground">
-          Build collection routes, assign collectors, and group pickup requests.
+          Build collection routes, assign collectors, and group pickup requests
+          (matched by date + time window).
         </p>
       </div>
 
@@ -84,7 +93,7 @@ export default async function AdminRoutesPage() {
           <CardHeader>
             <CardTitle>Create route</CardTitle>
             <CardDescription>
-              Set a date and (optionally) assign a collector now.
+              Pick a date + time window. Only requests matching both can be added.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -96,7 +105,7 @@ export default async function AdminRoutesPage() {
           <CardHeader>
             <CardTitle>Unassigned approved requests</CardTitle>
             <CardDescription>
-              These approved/scheduled requests are not yet attached to any route.
+              These approved/scheduled requests are not yet on any active route.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -128,12 +137,15 @@ export default async function AdminRoutesPage() {
                         <p className="text-xs text-muted-foreground truncate">
                           {resident?.full_name ?? "—"} • {r.address}
                         </p>
-                        <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-                          <Calendar className="w-3 h-3" />
-                          {format(
-                            parseISO(r.scheduled_date ?? r.preferred_date),
-                            "MMM d, yyyy",
-                          )}
+                        <p className="text-xs text-muted-foreground flex items-center gap-3 mt-1">
+                          <span className="flex items-center gap-1">
+                            <Calendar className="w-3 h-3" />
+                            {format(parseISO(r.effectiveDate), "MMM d, yyyy")}
+                          </span>
+                          <span className="flex items-center gap-1 capitalize">
+                            <Clock className="w-3 h-3" />
+                            {r.effectiveWindow}
+                          </span>
                         </p>
                       </div>
                     </div>
@@ -163,40 +175,51 @@ export default async function AdminRoutesPage() {
             </CardContent>
           </Card>
         ) : (
-          routes.map((route) => (
-            <RouteCard
-              key={route.id}
-              route={{
-                id: route.id,
-                name: route.name,
-                scheduledDate: route.scheduled_date,
-                status: route.status,
-                notes: route.notes,
-                collector: route.collector ?? null,
-                stops: route.stops.map((s) => ({
-                  id: s.id,
-                  stopOrder: s.stop_order,
-                  status: s.status,
-                  request: s.request
-                    ? {
-                        id: s.request.id,
-                        address: s.request.address,
-                        type: s.request.type,
-                        timeWindow:
-                          s.request.scheduled_time_window ??
-                          s.request.preferred_time_window,
-                      }
-                    : null,
-                })),
-              }}
-              collectors={collectors}
-              assignableRequests={unassigned.map((r) => ({
+          routes.map((route) => {
+            const matchingRequests = unassigned
+              .filter(
+                (r) =>
+                  r.effectiveDate === route.scheduled_date &&
+                  r.effectiveWindow === route.time_window,
+              )
+              .map((r) => ({
                 id: r.id,
                 address: r.address,
                 type: r.type,
-              }))}
-            />
-          ))
+              }));
+
+            return (
+              <RouteCard
+                key={route.id}
+                route={{
+                  id: route.id,
+                  name: route.name,
+                  scheduledDate: route.scheduled_date,
+                  timeWindow: route.time_window,
+                  status: route.status,
+                  notes: route.notes,
+                  collector: route.collector ?? null,
+                  stops: route.stops.map((s) => ({
+                    id: s.id,
+                    stopOrder: s.stop_order,
+                    status: s.status,
+                    request: s.request
+                      ? {
+                          id: s.request.id,
+                          address: s.request.address,
+                          type: s.request.type,
+                          timeWindow:
+                            s.request.scheduled_time_window ??
+                            s.request.preferred_time_window,
+                        }
+                      : null,
+                  })),
+                }}
+                collectors={collectors}
+                assignableRequests={matchingRequests}
+              />
+            );
+          })
         )}
       </div>
     </div>

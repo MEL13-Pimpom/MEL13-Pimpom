@@ -42,7 +42,7 @@ export function Sidebar({ items }: { items: NavItem[] }) {
   const pathname = usePathname();
 
   return (
-    <aside className="w-64 shrink-0 bg-sidebar border-r border-sidebar-border min-h-[calc(100vh-65px)] hidden md:block">
+    <aside className="w-64 shrink-0 bg-sidebar border-r border-sidebar-border hidden md:block sticky top-[65px] h-[calc(100vh-65px)] overflow-y-auto self-start z-20">
       <nav className="p-4 space-y-1">
         {items.map((item) => {
           const isActive =

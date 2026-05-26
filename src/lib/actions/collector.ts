@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth/get-current-profile";
+import { audit } from "@/lib/audit/log";
 import type { StopStatus, TablesUpdate } from "@/lib/types/database";
 
 type ActionResult = { ok: true } | { ok: false; error: string };
@@ -78,19 +79,47 @@ export async function updateStopStatusAction(
         link_url: "/resident/requests",
       });
     }
-  } else if (status === "missed" && stop.request_id) {
+  } else if ((status === "missed" || status === "skipped") && stop.request_id) {
+    // Return the request to "approved" + clear the assigned schedule so the
+    // resident can pick a new date/window from /resident/requests.
     await supabase
       .from("pickup_requests")
-      .update({ status: "missed" })
+      .update({
+        status: "approved",
+        scheduled_date: null,
+        scheduled_time_window: null,
+      })
       .eq("id", stop.request_id);
+
+    const reason =
+      status === "missed"
+        ? "The collector wasn't able to complete this pickup."
+        : "The collector skipped this stop.";
+
     if (request?.resident_id) {
       await supabase.from("notifications").insert({
         user_id: request.resident_id,
-        type: "request_update",
-        title: "Pickup missed",
-        body: "The collector was unable to complete your pickup. Please contact support or submit a new request.",
+        type: "schedule_change",
+        title: "Pickup needs rescheduling",
+        body: `${reason} You can pick a new date and time on your requests page.`,
         link_url: "/resident/requests",
       });
+    }
+
+    const { data: admins } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("role", "admin");
+    if (admins && admins.length > 0) {
+      await supabase.from("notifications").insert(
+        admins.map((a) => ({
+          user_id: a.id,
+          type: "system" as const,
+          title: status === "missed" ? "Stop missed" : "Stop skipped",
+          body: `Collector ${profile.full_name} marked a stop as ${status}. The request is back in the approved queue.`,
+          link_url: "/admin/routes",
+        })),
+      );
     }
   } else if (status === "en_route" && stop.request_id) {
     await supabase
@@ -132,6 +161,64 @@ export async function startRouteAction(routeId: string): Promise<ActionResult> {
   if (error) return { ok: false, error: error.message };
 
   revalidateCollectorPaths();
+  return { ok: true };
+}
+
+export async function claimRouteAction(routeId: string): Promise<ActionResult> {
+  const { profile, error: authError } = await requireCollector();
+  if (authError) return { ok: false, error: authError };
+
+  const supabase = await createSupabaseServerClient();
+
+  const { data: route, error: fetchError } = await supabase
+    .from("routes")
+    .select("id, name, scheduled_date, time_window, status, collector_id")
+    .eq("id", routeId)
+    .single();
+  if (fetchError || !route) return { ok: false, error: "Route not found." };
+  if (route.collector_id) {
+    return { ok: false, error: "This route already has a collector." };
+  }
+  if (route.status !== "planned") {
+    return { ok: false, error: "Only planned routes can be claimed." };
+  }
+
+  const { error } = await supabase
+    .from("routes")
+    .update({ collector_id: profile.id })
+    .eq("id", routeId)
+    .is("collector_id", null);
+  if (error) return { ok: false, error: error.message };
+
+  // Notify all admins
+  const { data: admins } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("role", "admin");
+  if (admins && admins.length > 0) {
+    await supabase.from("notifications").insert(
+      admins.map((a) => ({
+        user_id: a.id,
+        type: "system" as const,
+        title: "Route claimed by collector",
+        body: `${profile.full_name} claimed route "${route.name}" on ${route.scheduled_date} (${route.time_window}).`,
+        link_url: "/admin/routes",
+      })),
+    );
+  }
+
+  await audit({
+    actor: profile,
+    action: "route.claim",
+    targetType: "route",
+    targetId: routeId,
+    oldValue: "unassigned",
+    newValue: profile.id,
+  });
+
+  revalidateCollectorPaths();
+  revalidatePath("/admin/routes");
+  revalidatePath("/admin/notifications");
   return { ok: true };
 }
 

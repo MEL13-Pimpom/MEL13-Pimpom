@@ -12,6 +12,53 @@ export type Database = {
   };
   public: {
     Tables: {
+      audit_logs: {
+        Row: {
+          action: string;
+          actor_id: string | null;
+          actor_name: string;
+          created_at: string;
+          id: number;
+          ip_address: unknown | null;
+          new_value: string | null;
+          old_value: string | null;
+          target_id: string | null;
+          target_type: string | null;
+        };
+        Insert: {
+          action: string;
+          actor_id?: string | null;
+          actor_name?: string;
+          created_at?: string;
+          id?: never;
+          ip_address?: unknown | null;
+          new_value?: string | null;
+          old_value?: string | null;
+          target_id?: string | null;
+          target_type?: string | null;
+        };
+        Update: {
+          action?: string;
+          actor_id?: string | null;
+          actor_name?: string;
+          created_at?: string;
+          id?: never;
+          ip_address?: unknown | null;
+          new_value?: string | null;
+          old_value?: string | null;
+          target_id?: string | null;
+          target_type?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "audit_logs_actor_id_fkey";
+            columns: ["actor_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       notifications: {
         Row: {
           body: string | null;
@@ -223,6 +270,7 @@ export type Database = {
           notes: string | null;
           scheduled_date: string;
           status: Database["public"]["Enums"]["route_status"];
+          time_window: string;
           updated_at: string;
         };
         Insert: {
@@ -233,6 +281,7 @@ export type Database = {
           notes?: string | null;
           scheduled_date: string;
           status?: Database["public"]["Enums"]["route_status"];
+          time_window?: string;
           updated_at?: string;
         };
         Update: {
@@ -243,6 +292,7 @@ export type Database = {
           notes?: string | null;
           scheduled_date?: string;
           status?: Database["public"]["Enums"]["route_status"];
+          time_window?: string;
           updated_at?: string;
         };
         Relationships: [
@@ -255,46 +305,19 @@ export type Database = {
           },
         ];
       };
-      schedules: {
-        Row: {
-          area: string;
-          capacity: number;
-          created_at: string;
-          day_of_week: number;
-          id: string;
-          is_active: boolean;
-          time_window: string;
-          updated_at: string;
-        };
-        Insert: {
-          area: string;
-          capacity?: number;
-          created_at?: string;
-          day_of_week: number;
-          id?: string;
-          is_active?: boolean;
-          time_window: string;
-          updated_at?: string;
-        };
-        Update: {
-          area?: string;
-          capacity?: number;
-          created_at?: string;
-          day_of_week?: number;
-          id?: string;
-          is_active?: boolean;
-          time_window?: string;
-          updated_at?: string;
-        };
-        Relationships: [];
-      };
     };
     Views: { [_ in never]: never };
     Functions: {
       is_admin: { Args: Record<string, never>; Returns: boolean };
+      is_collector: { Args: Record<string, never>; Returns: boolean };
+      is_resident: { Args: Record<string, never>; Returns: boolean };
       notify_admins_role_change_request: {
         Args: { p_title: string; p_body: string; p_link_url: string };
         Returns: number;
+      };
+      request_belongs_to_me: {
+        Args: { p_request_id: string };
+        Returns: boolean;
       };
     };
     Enums: {
@@ -366,5 +389,5 @@ export type Profile = Tables<"profiles">;
 export type PickupRequest = Tables<"pickup_requests">;
 export type Route = Tables<"routes">;
 export type RouteStop = Tables<"route_stops">;
-export type Schedule = Tables<"schedules">;
 export type Notification = Tables<"notifications">;
+export type AuditLog = Tables<"audit_logs">;

@@ -21,6 +21,7 @@ export const createRouteSchema = z.object({
     .string()
     .min(1, { message: "Date is required." })
     .refine((v) => !Number.isNaN(Date.parse(v)), { message: "Invalid date." }),
+  timeWindow: z.enum(TIME_WINDOWS),
   collectorId: z.string().uuid().optional().or(z.literal("")),
   notes: z.string().max(500).optional(),
 });
@@ -36,30 +37,8 @@ export const broadcastSchema = z.object({
   targetRole: z.enum(["resident", "collector", "all"]),
 });
 
-export const createScheduleSchema = z.object({
-  area: z.string().min(2, { message: "Area is required." }),
-  dayOfWeek: z.coerce
-    .number()
-    .int()
-    .min(0)
-    .max(6, { message: "Day of week must be 0–6." }),
-  timeWindow: z.string().min(3, { message: "Time window is required." }),
-  capacity: z.coerce.number().int().positive().default(10),
-});
-
-export const DAY_OF_WEEK_LABELS: Record<number, string> = {
-  0: "Sunday",
-  1: "Monday",
-  2: "Tuesday",
-  3: "Wednesday",
-  4: "Thursday",
-  5: "Friday",
-  6: "Saturday",
-};
-
 export type RejectRequestInput = z.infer<typeof rejectRequestSchema>;
 export type ScheduleRequestInput = z.infer<typeof scheduleRequestSchema>;
 export type CreateRouteInput = z.infer<typeof createRouteSchema>;
 export type AssignCollectorInput = z.infer<typeof assignCollectorSchema>;
 export type BroadcastInput = z.infer<typeof broadcastSchema>;
-export type CreateScheduleInput = z.infer<typeof createScheduleSchema>;

@@ -345,7 +345,12 @@ export type Database = {
         | "glass"
         | "electronic"
         | "mixed";
-      route_status: "planned" | "in_progress" | "completed" | "cancelled";
+      route_status:
+        | "planned"
+        | "in_progress"
+        | "completed"
+        | "cancelled"
+        | "uncompleted";
       stop_status:
         | "pending"
         | "en_route"

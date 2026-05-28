@@ -339,12 +339,135 @@ export async function removeStopFromRouteAction(
   if (authError) return { ok: false, error: authError };
 
   const supabase = await createSupabaseServerClient();
+
+  const { data: stop, error: fetchError } = await supabase
+    .from("route_stops")
+    .select("id, status, request_id")
+    .eq("id", stopId)
+    .single();
+  if (fetchError || !stop) return { ok: false, error: "Stop not found." };
+
+  if (stop.status !== "pending") {
+    return {
+      ok: false,
+      error:
+        "Only pending stops can be removed — the collector has already started this one.",
+    };
+  }
+
   const { error } = await supabase.from("route_stops").delete().eq("id", stopId);
   if (error) return { ok: false, error: error.message };
 
+  // Return the request to the approved queue so admins can re-route it.
+  // Keep scheduled_date/window so re-adding to a route with the same slot
+  // is friction-free (per product spec).
+  if (stop.request_id) {
+    await supabase
+      .from("pickup_requests")
+      .update({ status: "approved" })
+      .eq("id", stop.request_id)
+      .eq("status", "scheduled");
+  }
+
   revalidatePath("/admin/routes");
+  revalidatePath("/admin/requests");
   revalidatePath("/collector/route");
   revalidatePath("/collector/tasks");
+  revalidatePath("/resident/requests");
+  return { ok: true };
+}
+
+const ACTIVE_STOP_STATUSES = [
+  "en_route",
+  "arrived",
+  "completed",
+  "missed",
+  "skipped",
+] as const;
+
+export async function deleteRouteAction(
+  routeId: string,
+): Promise<ActionResult> {
+  const { profile: admin, error: authError } = await requireAdmin();
+  if (authError) return { ok: false, error: authError };
+
+  const supabase = await createSupabaseServerClient();
+
+  const { data: route, error: routeError } = await supabase
+    .from("routes")
+    .select("id, name, scheduled_date, time_window, collector_id")
+    .eq("id", routeId)
+    .single();
+  if (routeError || !route) return { ok: false, error: "Route not found." };
+
+  const { data: stops, error: stopsError } = await supabase
+    .from("route_stops")
+    .select("id, status, request_id")
+    .eq("route_id", routeId);
+  if (stopsError) return { ok: false, error: stopsError.message };
+
+  const nonPending = (stops ?? []).filter((s) => s.status !== "pending");
+  if (nonPending.length > 0) {
+    return {
+      ok: false,
+      error:
+        "Cannot delete — some stops are already in progress or finished. Remove only routes where every stop is still pending.",
+    };
+  }
+
+  const requestIds = (stops ?? [])
+    .map((s) => s.request_id)
+    .filter((id): id is string => Boolean(id));
+
+  // Revert the linked pickup_requests first (keeps scheduled_date/window),
+  // then drop stops + route. RLS already enforces is_admin on writes.
+  if (requestIds.length > 0) {
+    await supabase
+      .from("pickup_requests")
+      .update({ status: "approved" })
+      .in("id", requestIds)
+      .eq("status", "scheduled");
+  }
+
+  if ((stops ?? []).length > 0) {
+    const { error: deleteStopsError } = await supabase
+      .from("route_stops")
+      .delete()
+      .eq("route_id", routeId);
+    if (deleteStopsError) return { ok: false, error: deleteStopsError.message };
+  }
+
+  const { error: deleteRouteError } = await supabase
+    .from("routes")
+    .delete()
+    .eq("id", routeId);
+  if (deleteRouteError) return { ok: false, error: deleteRouteError.message };
+
+  if (route.collector_id) {
+    await supabase.from("notifications").insert({
+      user_id: route.collector_id,
+      type: "system",
+      title: "Route removed",
+      body: `Route "${route.name}" on ${route.scheduled_date} (${route.time_window}) was removed by an admin.`,
+      link_url: "/collector/tasks",
+    });
+  }
+
+  await audit({
+    actor: admin,
+    action: "route.delete",
+    targetType: "route",
+    targetId: routeId,
+    oldValue: `${route.name} • ${route.scheduled_date} • ${route.time_window}`,
+  });
+
+  revalidatePath("/admin/routes");
+  revalidatePath("/admin/requests");
+  revalidatePath("/admin/reports");
+  revalidatePath("/collector/route");
+  revalidatePath("/collector/tasks");
+  revalidatePath("/collector/notifications");
+  revalidatePath("/resident/requests");
   return { ok: true };
 }
 
@@ -367,6 +490,20 @@ export async function assignCollectorAction(
     .single();
 
   if (routeError || !route) return { ok: false, error: "Route not found." };
+
+  // Lock collector reassignment once a collector has started touching stops.
+  const { data: lockedStops } = await supabase
+    .from("route_stops")
+    .select("id")
+    .eq("route_id", parsed.data.routeId)
+    .in("status", [...ACTIVE_STOP_STATUSES]);
+  if ((lockedStops ?? []).length > 0) {
+    return {
+      ok: false,
+      error:
+        "Cannot change collector — at least one stop is already en-route, arrived, completed, missed, or skipped.",
+    };
+  }
 
   const { error } = await supabase
     .from("routes")

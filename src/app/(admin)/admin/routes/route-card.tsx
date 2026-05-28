@@ -18,6 +18,7 @@ import { StopStatusBadge } from "@/components/shared/status-badge";
 import {
   addStopToRouteAction,
   assignCollectorAction,
+  deleteRouteAction,
   removeStopFromRouteAction,
 } from "@/lib/actions/admin";
 import { REQUEST_TYPE_LABELS } from "@/lib/validations/request";
@@ -52,12 +53,26 @@ interface Props {
 
 const UNASSIGNED = "__unassigned";
 
+const ACTIVE_STOP_STATUSES: StopStatus[] = [
+  "en_route",
+  "arrived",
+  "completed",
+  "missed",
+  "skipped",
+];
+
 export function RouteCard({ route, collectors, assignableRequests }: Props) {
   const router = useRouter();
   const [stopToAdd, setStopToAdd] = useState<string>("");
   const [addPending, startAdd] = useTransition();
   const [removePending, startRemove] = useTransition();
   const [assignPending, startAssign] = useTransition();
+  const [deletePending, startDelete] = useTransition();
+
+  const hasActiveStops = route.stops.some((s) =>
+    ACTIVE_STOP_STATUSES.includes(s.status),
+  );
+  const canDeleteRoute = !hasActiveStops;
 
   const handleAddStop = () => {
     if (!stopToAdd) return;
@@ -101,6 +116,26 @@ export function RouteCard({ route, collectors, assignableRequests }: Props) {
     });
   };
 
+  const handleDeleteRoute = () => {
+    const stopCount = route.stops.length;
+    const confirmMsg =
+      stopCount > 0
+        ? `Delete route "${route.name}"? ${stopCount} pending stop${
+            stopCount === 1 ? "" : "s"
+          } will be released back to the approved queue.`
+        : `Delete route "${route.name}"?`;
+    if (!window.confirm(confirmMsg)) return;
+    startDelete(async () => {
+      const result = await deleteRouteAction(route.id);
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success("Route deleted.");
+      router.refresh();
+    });
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -133,26 +168,56 @@ export function RouteCard({ route, collectors, assignableRequests }: Props) {
               </p>
             )}
           </div>
-          <div className="w-full md:w-48 flex justify-end">
-            <Select
-              value={route.collector?.id ?? UNASSIGNED}
-              onValueChange={handleAssignCollector}
-              disabled={assignPending}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Assign collector" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={UNASSIGNED} disabled>
-                  Assign collector
-                </SelectItem>
-                {collectors.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.full_name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="w-full md:w-auto flex flex-col gap-1 md:items-end">
+            <div className="flex items-center gap-2 w-full md:w-auto">
+              <div className="flex-1 md:flex-none md:w-52">
+                <Select
+                  value={route.collector?.id ?? UNASSIGNED}
+                  onValueChange={handleAssignCollector}
+                  disabled={assignPending || hasActiveStops}
+                >
+                  <SelectTrigger
+                    title={
+                      hasActiveStops
+                        ? "Locked — collector has already started working stops."
+                        : undefined
+                    }
+                  >
+                    <SelectValue placeholder="Assign collector" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={UNASSIGNED} disabled>
+                      Assign collector
+                    </SelectItem>
+                    {collectors.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.full_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleDeleteRoute}
+                disabled={deletePending || !canDeleteRoute}
+                title={
+                  !canDeleteRoute
+                    ? "Cannot delete — route already has stops in progress."
+                    : undefined
+                }
+                className="text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Trash2 className="w-4 h-4 mr-1" />
+                {deletePending ? "Deleting..." : "Delete"}
+              </Button>
+            </div>
+            {hasActiveStops && (
+              <p className="text-xs text-muted-foreground italic">
+                Collector locked — route is already in progress.
+              </p>
+            )}
           </div>
         </div>
       </CardHeader>
@@ -185,15 +250,23 @@ export function RouteCard({ route, collectors, assignableRequests }: Props) {
                     {stop.request?.timeWindow ? ` • ${stop.request.timeWindow}` : ""}
                   </p>
                 </div>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => handleRemoveStop(stop.id)}
-                  disabled={removePending}
-                  className="text-destructive hover:bg-destructive/10 flex-shrink-0"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
+                {stop.status === "pending" ? (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => handleRemoveStop(stop.id)}
+                    disabled={removePending}
+                    className="text-destructive hover:bg-destructive/10 flex-shrink-0"
+                    title="Remove stop from route"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                ) : (
+                  <div
+                    className="w-9 flex-shrink-0"
+                    title="Locked — collector already started this stop."
+                  />
+                )}
               </li>
             ))}
           </ol>

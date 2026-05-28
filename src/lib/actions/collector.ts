@@ -238,24 +238,53 @@ export async function completeRouteAction(routeId: string): Promise<ActionResult
     return { ok: false, error: "You can only complete your own routes." };
   }
 
-  const { data: pendingStops } = await supabase
+  const { data: allStops } = await supabase
     .from("route_stops")
-    .select("id")
-    .eq("route_id", routeId)
-    .in("status", ["pending", "en_route", "arrived"]);
-  if ((pendingStops ?? []).length > 0) {
+    .select("id, status")
+    .eq("route_id", routeId);
+
+  const stops = allStops ?? [];
+  const unfinished = stops.filter((s) =>
+    ["pending", "en_route", "arrived"].includes(s.status),
+  );
+  if (unfinished.length > 0) {
     return {
       ok: false,
       error: "Mark every stop as completed, missed, or skipped first.",
     };
   }
 
+  const hasMissed = stops.some((s) => s.status === "missed");
+  const finalStatus: "completed" | "uncompleted" = hasMissed
+    ? "uncompleted"
+    : "completed";
+
   const { error } = await supabase
     .from("routes")
-    .update({ status: "completed" })
+    .update({ status: finalStatus })
     .eq("id", routeId);
   if (error) return { ok: false, error: error.message };
 
+  if (hasMissed) {
+    const { data: admins } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("role", "admin");
+    if (admins && admins.length > 0) {
+      await supabase.from("notifications").insert(
+        admins.map((a) => ({
+          user_id: a.id,
+          type: "system" as const,
+          title: "Route completed with missed stops",
+          body: `Collector ${profile.full_name} finished a route that had missed stops. Affected residents need rescheduling.`,
+          link_url: "/admin/routes",
+        })),
+      );
+    }
+  }
+
   revalidateCollectorPaths();
+  revalidatePath("/admin/routes");
+  revalidatePath("/admin/notifications");
   return { ok: true };
 }

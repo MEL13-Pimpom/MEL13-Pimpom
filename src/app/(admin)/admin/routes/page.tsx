@@ -1,5 +1,6 @@
+import Link from "next/link";
 import { format, parseISO } from "date-fns";
-import { Calendar, Clock, MapPin, Package } from "lucide-react";
+import { Calendar, ChevronLeft, ChevronRight, Clock, MapPin, Package } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -8,6 +9,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { requireRole } from "@/lib/auth/get-current-profile";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { REQUEST_TYPE_LABELS } from "@/lib/validations/request";
@@ -16,12 +18,23 @@ import { RouteCard } from "./route-card";
 
 export const metadata = { title: "Route Assignment" };
 
-export default async function AdminRoutesPage() {
+const ROUTES_PER_PAGE = 10;
+
+export default async function AdminRoutesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
   await requireRole("admin");
   const supabase = await createSupabaseServerClient();
 
+  const { page: pageParam } = await searchParams;
+  const requestedPage = Math.max(1, Number.parseInt(pageParam ?? "1", 10) || 1);
+  const from = (requestedPage - 1) * ROUTES_PER_PAGE;
+  const to = from + ROUTES_PER_PAGE - 1;
+
   const [
-    { data: routesData },
+    { data: routesData, count: routesTotal },
     { data: collectorsData },
     { data: assignedStopsData },
   ] = await Promise.all([
@@ -29,8 +42,10 @@ export default async function AdminRoutesPage() {
       .from("routes")
       .select(
         "id, name, scheduled_date, time_window, status, notes, collector:profiles!routes_collector_id_fkey(id, full_name), stops:route_stops(id, stop_order, status, request:pickup_requests(id, address, type, scheduled_time_window, preferred_time_window))",
+        { count: "exact" },
       )
-      .order("scheduled_date", { ascending: false }),
+      .order("scheduled_date", { ascending: false })
+      .range(from, to),
     supabase
       .from("profiles")
       .select("id, full_name")
@@ -38,6 +53,10 @@ export default async function AdminRoutesPage() {
       .order("full_name", { ascending: true }),
     supabase.from("route_stops").select("request_id, status"),
   ]);
+
+  const totalRoutes = routesTotal ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalRoutes / ROUTES_PER_PAGE));
+  const currentPage = Math.min(requestedPage, totalPages);
 
   // A request is considered "occupied" only if it has an active stop.
   // Missed/skipped stops free the request so it can be added to another route.
@@ -88,7 +107,7 @@ export default async function AdminRoutesPage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:items-start">
         <Card className="lg:col-span-1">
           <CardHeader>
             <CardTitle>Create route</CardTitle>
@@ -114,7 +133,7 @@ export default async function AdminRoutesPage() {
                 Nothing waiting — every approved request is on a route.
               </p>
             ) : (
-              <div className="space-y-2 max-h-72 overflow-y-auto">
+              <div className="space-y-2 max-h-[22rem] overflow-y-auto pr-1">
                 {unassigned.map((r) => {
                   const resident = Array.isArray(r.resident)
                     ? r.resident[0]
@@ -161,11 +180,16 @@ export default async function AdminRoutesPage() {
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-semibold flex items-center gap-2">
             <MapPin className="w-5 h-5 text-primary" />
-            All routes ({routes.length})
+            All routes ({totalRoutes})
           </h2>
+          {totalPages > 1 && (
+            <p className="text-sm text-muted-foreground">
+              Page {currentPage} of {totalPages}
+            </p>
+          )}
         </div>
 
-        {routes.length === 0 ? (
+        {totalRoutes === 0 ? (
           <Card>
             <CardContent className="p-12 text-center">
               <MapPin className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
@@ -220,6 +244,51 @@ export default async function AdminRoutesPage() {
               />
             );
           })
+        )}
+
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between pt-2">
+            <p className="text-sm text-muted-foreground">
+              Showing {from + 1}–{Math.min(to + 1, totalRoutes)} of {totalRoutes}
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                asChild
+                variant="outline"
+                size="sm"
+                disabled={currentPage <= 1}
+              >
+                <Link
+                  href={`/admin/routes?page=${Math.max(1, currentPage - 1)}`}
+                  aria-disabled={currentPage <= 1}
+                  className={currentPage <= 1 ? "pointer-events-none opacity-50" : ""}
+                >
+                  <ChevronLeft className="w-4 h-4 mr-1" />
+                  Previous
+                </Link>
+              </Button>
+              <span className="text-sm text-muted-foreground px-2">
+                Page {currentPage} / {totalPages}
+              </span>
+              <Button
+                asChild
+                variant="outline"
+                size="sm"
+                disabled={currentPage >= totalPages}
+              >
+                <Link
+                  href={`/admin/routes?page=${Math.min(totalPages, currentPage + 1)}`}
+                  aria-disabled={currentPage >= totalPages}
+                  className={
+                    currentPage >= totalPages ? "pointer-events-none opacity-50" : ""
+                  }
+                >
+                  Next
+                  <ChevronRight className="w-4 h-4 ml-1" />
+                </Link>
+              </Button>
+            </div>
+          </div>
         )}
       </div>
     </div>

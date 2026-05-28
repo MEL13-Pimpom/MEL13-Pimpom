@@ -183,12 +183,20 @@ export async function claimRouteAction(routeId: string): Promise<ActionResult> {
     return { ok: false, error: "Only planned routes can be claimed." };
   }
 
-  const { error } = await supabase
+  const { data: claimed, error } = await supabase
     .from("routes")
     .update({ collector_id: profile.id })
     .eq("id", routeId)
-    .is("collector_id", null);
+    .is("collector_id", null)
+    .select("id")
+    .maybeSingle();
   if (error) return { ok: false, error: error.message };
+  if (!claimed) {
+    return {
+      ok: false,
+      error: "Couldn't claim this route — someone else may have grabbed it first.",
+    };
+  }
 
   // Notify all admins
   const { data: admins } = await supabase

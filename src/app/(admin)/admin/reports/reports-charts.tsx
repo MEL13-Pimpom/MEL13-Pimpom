@@ -17,13 +17,22 @@ import {
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-const PIE_COLORS = [
+const WASTE_TYPE_COLORS: Record<string, string> = {
+  Paper: "#f59e0b",
+  Plastic: "#3b82f6",
+  Metal: "#94a3b8",
+  Glass: "#06b6d4",
+  Electronics: "#a855f7",
+  Mixed: "#ef4444",
+};
+
+const PIE_FALLBACK_COLORS = [
   "#4CAF50",
-  "#81c784",
-  "#66bb6a",
-  "#a5d6a7",
-  "#c8e6c9",
-  "#388e3c",
+  "#f59e0b",
+  "#3b82f6",
+  "#a855f7",
+  "#ef4444",
+  "#06b6d4",
 ];
 
 interface Props {
@@ -97,10 +106,13 @@ export function ReportsCharts({ monthly, wasteDistribution, statusData }: Props)
                   dataKey="value"
                   label={(entry) => `${entry.name}: ${entry.value}`}
                 >
-                  {wasteDistribution.map((_, idx) => (
+                  {wasteDistribution.map((entry, idx) => (
                     <Cell
                       key={`cell-${idx}`}
-                      fill={PIE_COLORS[idx % PIE_COLORS.length]}
+                      fill={
+                        WASTE_TYPE_COLORS[entry.name] ??
+                        PIE_FALLBACK_COLORS[idx % PIE_FALLBACK_COLORS.length]
+                      }
                     />
                   ))}
                 </Pie>

@@ -1,7 +1,17 @@
-import { BarChart3, FileText, Recycle, ShieldCheck, TrendingUp } from "lucide-react";
+import Link from "next/link";
+import {
+  BarChart3,
+  ChevronLeft,
+  ChevronRight,
+  FileText,
+  Recycle,
+  ShieldCheck,
+  TrendingUp,
+} from "lucide-react";
 import { format, formatDistanceToNow, parseISO, subMonths, startOfMonth } from "date-fns";
 import { StatsCard } from "@/components/shared/stats-card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -30,16 +40,30 @@ const STATUS_LABELS: Record<RequestStatus, string> = {
   missed: "Missed",
 };
 
-export default async function AdminReportsPage() {
+const AUDIT_LOGS_PER_PAGE = 20;
+
+export default async function AdminReportsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ auditPage?: string }>;
+}) {
   await requireRole("admin");
   const supabase = await createSupabaseServerClient();
 
   const sixMonthsAgo = subMonths(startOfMonth(new Date()), 5).toISOString();
 
+  const { auditPage: auditPageParam } = await searchParams;
+  const requestedAuditPage = Math.max(
+    1,
+    Number.parseInt(auditPageParam ?? "1", 10) || 1,
+  );
+  const auditFrom = (requestedAuditPage - 1) * AUDIT_LOGS_PER_PAGE;
+  const auditTo = auditFrom + AUDIT_LOGS_PER_PAGE - 1;
+
   const [
     { data: allRequests },
     { data: recentRequests },
-    { data: auditData },
+    { data: auditData, count: auditTotal },
   ] = await Promise.all([
     supabase.from("pickup_requests").select("id, status, type, weight_kg_estimate"),
     supabase
@@ -50,12 +74,19 @@ export default async function AdminReportsPage() {
       .from("audit_logs")
       .select(
         "id, action, actor_id, actor_name, target_type, target_id, old_value, new_value, ip_address, created_at",
+        { count: "exact" },
       )
       .order("created_at", { ascending: false })
-      .limit(100),
+      .range(auditFrom, auditTo),
   ]);
 
   const auditLogs = auditData ?? [];
+  const totalAuditLogs = auditTotal ?? 0;
+  const totalAuditPages = Math.max(
+    1,
+    Math.ceil(totalAuditLogs / AUDIT_LOGS_PER_PAGE),
+  );
+  const currentAuditPage = Math.min(requestedAuditPage, totalAuditPages);
 
   const all = allRequests ?? [];
   const total = all.length;
@@ -168,15 +199,19 @@ export default async function AdminReportsPage() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card id="audit-logs" className="scroll-mt-20">
         <CardHeader>
           <div className="flex items-center gap-2">
             <ShieldCheck className="w-5 h-5 text-primary" />
             <CardTitle>System Audit Logs</CardTitle>
           </div>
           <CardDescription>
-            Latest {auditLogs.length} actions across requests, routes, and user
-            management.
+            {totalAuditLogs === 0
+              ? "No audit events recorded yet."
+              : `Showing ${auditFrom + 1}–${Math.min(
+                  auditTo + 1,
+                  totalAuditLogs,
+                )} of ${totalAuditLogs} actions across requests, routes, and user management.`}
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
@@ -259,6 +294,57 @@ export default async function AdminReportsPage() {
               </TableBody>
             </Table>
           </div>
+          {totalAuditPages > 1 && (
+            <div className="flex items-center justify-between px-6 py-4 border-t border-border">
+              <p className="text-sm text-muted-foreground">
+                Page {currentAuditPage} of {totalAuditPages}
+              </p>
+              <div className="flex items-center gap-2">
+                <Button
+                  asChild
+                  variant="outline"
+                  size="sm"
+                  disabled={currentAuditPage <= 1}
+                >
+                  <Link
+                    href={`/admin/reports?auditPage=${Math.max(
+                      1,
+                      currentAuditPage - 1,
+                    )}#audit-logs`}
+                    aria-disabled={currentAuditPage <= 1}
+                    className={
+                      currentAuditPage <= 1 ? "pointer-events-none opacity-50" : ""
+                    }
+                  >
+                    <ChevronLeft className="w-4 h-4 mr-1" />
+                    Previous
+                  </Link>
+                </Button>
+                <Button
+                  asChild
+                  variant="outline"
+                  size="sm"
+                  disabled={currentAuditPage >= totalAuditPages}
+                >
+                  <Link
+                    href={`/admin/reports?auditPage=${Math.min(
+                      totalAuditPages,
+                      currentAuditPage + 1,
+                    )}#audit-logs`}
+                    aria-disabled={currentAuditPage >= totalAuditPages}
+                    className={
+                      currentAuditPage >= totalAuditPages
+                        ? "pointer-events-none opacity-50"
+                        : ""
+                    }
+                  >
+                    Next
+                    <ChevronRight className="w-4 h-4 ml-1" />
+                  </Link>
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

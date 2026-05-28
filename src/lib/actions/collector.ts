@@ -65,11 +65,10 @@ export async function updateStopStatusAction(
     .eq("id", stopId);
   if (stopError) return { ok: false, error: stopError.message };
 
+  // pickup_requests.status is mirrored from route_stops.status by a
+  // SECURITY DEFINER trigger (sync_request_status_from_stop). We only emit
+  // the side-effects (notifications) here.
   if (status === "completed" && stop.request_id) {
-    await supabase
-      .from("pickup_requests")
-      .update({ status: "completed" })
-      .eq("id", stop.request_id);
     if (request?.resident_id) {
       await supabase.from("notifications").insert({
         user_id: request.resident_id,
@@ -80,17 +79,6 @@ export async function updateStopStatusAction(
       });
     }
   } else if ((status === "missed" || status === "skipped") && stop.request_id) {
-    // Return the request to "approved" + clear the assigned schedule so the
-    // resident can pick a new date/window from /resident/requests.
-    await supabase
-      .from("pickup_requests")
-      .update({
-        status: "approved",
-        scheduled_date: null,
-        scheduled_time_window: null,
-      })
-      .eq("id", stop.request_id);
-
     const reason =
       status === "missed"
         ? "The collector wasn't able to complete this pickup."
@@ -121,11 +109,6 @@ export async function updateStopStatusAction(
         })),
       );
     }
-  } else if (status === "en_route" && stop.request_id) {
-    await supabase
-      .from("pickup_requests")
-      .update({ status: "in_progress" })
-      .eq("id", stop.request_id);
   }
 
   revalidateCollectorPaths();

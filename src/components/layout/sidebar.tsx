@@ -53,10 +53,10 @@ export function Sidebar({ items }: { items: NavItem[] }) {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors text-sm",
+                "group flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-200 text-sm",
                 isActive
-                  ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
-                  : "text-sidebar-foreground hover:bg-sidebar-accent",
+                  ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium shadow-md hover:bg-[#388e3c]"
+                  : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-primary hover:shadow-sm hover:translate-x-1 hover:font-medium",
               )}
             >
               {Icon && <Icon className="w-5 h-5" />}

@@ -297,7 +297,7 @@ function DeleteUserAlert({
               onConfirm();
             }}
             disabled={pending}
-            className="bg-destructive text-white hover:bg-destructive/90"
+            variant="destructive"
           >
             {pending ? "Deleting..." : "Delete user"}
           </AlertDialogAction>

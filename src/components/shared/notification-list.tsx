@@ -94,7 +94,7 @@ export function NotificationList({ notifications }: Props) {
     <div className="space-y-6">
       {unread.length > 0 && (
         <Card>
-          <CardHeader className="bg-accent flex flex-row items-center justify-between border-b border-border">
+          <CardHeader className="bg-accent flex flex-row items-center justify-between border-b border-border -mt-6 pt-6 rounded-t-xl">
             <CardTitle className="flex items-center gap-2 text-lg">
               <AlertCircle className="w-5 h-5 text-primary" />
               New ({unread.length})
@@ -200,7 +200,7 @@ function NotificationRow({
               ) : null}
               {isUnread && onMark && (
                 <Button
-                  variant="ghost"
+                  variant="outline"
                   size="sm"
                   onClick={() => onMark(notification.id)}
                   disabled={disabled}

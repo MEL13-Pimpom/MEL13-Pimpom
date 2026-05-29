@@ -108,7 +108,7 @@ export default async function CollectorHistoryPage() {
           <CardTitle>Recent completed routes</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto px-5">
             <Table>
               <TableHeader>
                 <TableRow>

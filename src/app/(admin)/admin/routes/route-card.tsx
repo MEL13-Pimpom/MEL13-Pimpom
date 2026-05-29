@@ -5,6 +5,16 @@ import { useRouter } from "next/navigation";
 import { format, parseISO } from "date-fns";
 import { Calendar, Clock, MapPin, Plus, Trash2, User } from "lucide-react";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -64,6 +74,7 @@ const ACTIVE_STOP_STATUSES: StopStatus[] = [
 export function RouteCard({ route, collectors, assignableRequests }: Props) {
   const router = useRouter();
   const [stopToAdd, setStopToAdd] = useState<string>("");
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const [addPending, startAdd] = useTransition();
   const [removePending, startRemove] = useTransition();
   const [assignPending, startAssign] = useTransition();
@@ -116,15 +127,15 @@ export function RouteCard({ route, collectors, assignableRequests }: Props) {
     });
   };
 
-  const handleDeleteRoute = () => {
-    const stopCount = route.stops.length;
-    const confirmMsg =
-      stopCount > 0
-        ? `Delete route "${route.name}"? ${stopCount} pending stop${
-            stopCount === 1 ? "" : "s"
-          } will be released back to the approved queue.`
-        : `Delete route "${route.name}"?`;
-    if (!window.confirm(confirmMsg)) return;
+  const stopCount = route.stops.length;
+  const deleteDescription =
+    stopCount > 0
+      ? `${stopCount} pending stop${
+          stopCount === 1 ? "" : "s"
+        } will be released back to the approved queue. This action cannot be undone.`
+      : "This action cannot be undone.";
+
+  const handleConfirmDelete = () => {
     startDelete(async () => {
       const result = await deleteRouteAction(route.id);
       if (!result.ok) {
@@ -132,6 +143,7 @@ export function RouteCard({ route, collectors, assignableRequests }: Props) {
         return;
       }
       toast.success("Route deleted.");
+      setDeleteOpen(false);
       router.refresh();
     });
   };
@@ -200,7 +212,7 @@ export function RouteCard({ route, collectors, assignableRequests }: Props) {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={handleDeleteRoute}
+                onClick={() => setDeleteOpen(true)}
                 disabled={deletePending || !canDeleteRoute}
                 title={
                   !canDeleteRoute
@@ -212,6 +224,33 @@ export function RouteCard({ route, collectors, assignableRequests }: Props) {
                 <Trash2 className="w-4 h-4 mr-1" />
                 {deletePending ? "Deleting..." : "Delete"}
               </Button>
+              <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>
+                      Delete route &ldquo;{route.name}&rdquo;?
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                      {deleteDescription}
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel disabled={deletePending}>
+                      Cancel
+                    </AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handleConfirmDelete();
+                      }}
+                      disabled={deletePending}
+                      variant="destructive"
+                    >
+                      {deletePending ? "Deleting..." : "Delete route"}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
             {hasActiveStops && (
               <p className="text-xs text-muted-foreground italic">

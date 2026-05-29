@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { format, parseISO } from "date-fns";
-import { Filter, Search } from "lucide-react";
+import { ChevronLeft, ChevronRight, Filter, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -126,7 +126,7 @@ export default async function AdminRequestsPage({ searchParams }: PageProps) {
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto px-5">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -218,52 +218,69 @@ export default async function AdminRequestsPage({ searchParams }: PageProps) {
               </TableBody>
             </Table>
           </div>
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between px-6 py-4 border-t border-border">
+              <p className="text-sm text-muted-foreground">
+                Page {page} of {totalPages}
+              </p>
+              <div className="flex items-center gap-2">
+                <Button
+                  asChild
+                  variant="outline"
+                  size="sm"
+                  disabled={page <= 1}
+                >
+                  <Link
+                    href={{
+                      pathname: "/admin/requests",
+                      query: {
+                        ...(statusFilter !== "all"
+                          ? { status: statusFilter }
+                          : {}),
+                        page: Math.max(1, page - 1),
+                      },
+                    }}
+                    aria-disabled={page <= 1}
+                    className={
+                      page <= 1 ? "pointer-events-none opacity-50" : ""
+                    }
+                  >
+                    <ChevronLeft className="w-4 h-4 mr-1" />
+                    Previous
+                  </Link>
+                </Button>
+                <Button
+                  asChild
+                  variant="outline"
+                  size="sm"
+                  disabled={page >= totalPages}
+                >
+                  <Link
+                    href={{
+                      pathname: "/admin/requests",
+                      query: {
+                        ...(statusFilter !== "all"
+                          ? { status: statusFilter }
+                          : {}),
+                        page: Math.min(totalPages, page + 1),
+                      },
+                    }}
+                    aria-disabled={page >= totalPages}
+                    className={
+                      page >= totalPages
+                        ? "pointer-events-none opacity-50"
+                        : ""
+                    }
+                  >
+                    Next
+                    <ChevronRight className="w-4 h-4 ml-1" />
+                  </Link>
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
-
-      {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2">
-          <Button
-            asChild
-            variant="outline"
-            size="sm"
-            disabled={page <= 1}
-          >
-            <Link
-              href={{
-                pathname: "/admin/requests",
-                query: {
-                  ...(statusFilter !== "all" ? { status: statusFilter } : {}),
-                  page: page - 1,
-                },
-              }}
-            >
-              Previous
-            </Link>
-          </Button>
-          <span className="text-sm text-muted-foreground">
-            Page {page} of {totalPages}
-          </span>
-          <Button
-            asChild
-            variant="outline"
-            size="sm"
-            disabled={page >= totalPages}
-          >
-            <Link
-              href={{
-                pathname: "/admin/requests",
-                query: {
-                  ...(statusFilter !== "all" ? { status: statusFilter } : {}),
-                  page: page + 1,
-                },
-              }}
-            >
-              Next
-            </Link>
-          </Button>
-        </div>
-      )}
     </div>
   );
 }

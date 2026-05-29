@@ -112,7 +112,7 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto px-5">
             <Table>
               <TableHeader>
                 <TableRow>

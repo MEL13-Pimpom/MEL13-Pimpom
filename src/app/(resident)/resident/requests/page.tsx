@@ -98,18 +98,15 @@ export default async function ResidentRequestsPage({ searchParams }: PageProps) 
             return (
               <Card key={r.id} className="hover:shadow-md transition-shadow">
                 <CardContent className="p-6">
-                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                  <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between mb-3 gap-3">
-                        <div>
-                          <h3 className="text-lg font-semibold text-foreground mb-1">
-                            {REQUEST_TYPE_LABELS[r.type]}
-                          </h3>
-                          <p className="text-xs text-muted-foreground">
-                            Submitted {format(parseISO(r.created_at), "MMM d, yyyy")}
-                          </p>
-                        </div>
-                        <RequestStatusBadge status={r.status} />
+                      <div className="mb-3">
+                        <h3 className="text-lg font-semibold text-foreground mb-1">
+                          {REQUEST_TYPE_LABELS[r.type]}
+                        </h3>
+                        <p className="text-xs text-muted-foreground">
+                          Submitted {format(parseISO(r.created_at), "MMM d, yyyy")}
+                        </p>
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-sm text-muted-foreground">
                         <div className="flex items-center gap-2">
@@ -160,13 +157,16 @@ export default async function ResidentRequestsPage({ searchParams }: PageProps) 
                       )}
                     </div>
 
-                    {canModify && (
-                      <RequestRowActions
-                        requestId={r.id}
-                        currentDate={r.preferred_date}
-                        currentTimeWindow={r.preferred_time_window}
-                      />
-                    )}
+                    <div className="flex flex-col items-end gap-3 md:ml-auto">
+                      <RequestStatusBadge status={r.status} />
+                      {canModify && (
+                        <RequestRowActions
+                          requestId={r.id}
+                          currentDate={r.preferred_date}
+                          currentTimeWindow={r.preferred_time_window}
+                        />
+                      )}
+                    </div>
                   </div>
                 </CardContent>
               </Card>

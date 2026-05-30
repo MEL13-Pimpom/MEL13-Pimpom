@@ -1,7 +1,8 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
-import { ChevronDown, KeyRound, LogOut, Recycle, UserCircle } from "lucide-react";
+import { ChevronDown, KeyRound, LogOut, UserCircle } from "lucide-react";
 import { useTransition } from "react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -35,8 +36,14 @@ export function Navbar({ userName, userRole, avatarUrl }: NavbarProps) {
     <header className="bg-white border-b border-border shadow-sm sticky top-0 z-30">
       <div className="px-6 py-3 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
-            <Recycle className="h-6 w-6 text-primary" strokeWidth={1.75} />
+          <div className="h-10 w-10 rounded-xl overflow-hidden flex items-center justify-center">
+            <Image
+              src="/icon.png"
+              alt="Recycling Pickup Scheduler"
+              width={40}
+              height={40}
+              className="h-10 w-10 object-contain"
+            />
           </div>
           <div className="flex flex-col leading-tight">
             <span className="text-base font-semibold">Recycling Pickup</span>

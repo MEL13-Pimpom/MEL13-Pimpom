@@ -270,7 +270,7 @@ export default async function AdminReportsPage({
                           "—"
                         )}
                       </TableCell>
-                      <TableCell className="text-xs text-muted-foreground max-w-xs">
+                      <TableCell className="text-xs text-muted-foreground w-[230px] max-w-[300px] whitespace-normal break-words [overflow-wrap:anywhere]">
                         {log.old_value || log.new_value ? (
                           <span>
                             {log.old_value ? (

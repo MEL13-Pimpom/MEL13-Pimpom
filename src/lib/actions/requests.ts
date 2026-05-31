@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth/get-current-profile";
 import { audit } from "@/lib/audit/log";
+import { classifyAndApply } from "@/lib/ai/classify-request";
 import {
   createRequestSchema,
   rescheduleRequestSchema,
@@ -60,8 +61,15 @@ export async function createRequestAction(
     newValue: `${parsed.data.type} • ${parsed.data.preferredDate} ${parsed.data.preferredTimeWindow}`,
   });
 
+  await classifyAndApply({
+    id: data.id,
+    type: parsed.data.type,
+    photo_url: parsed.data.photoUrl && parsed.data.photoUrl.length > 0 ? parsed.data.photoUrl : null,
+  });
+
   revalidatePath("/resident/requests");
   revalidatePath("/resident/dashboard");
+  revalidatePath("/admin/requests");
   return { ok: true, id: data.id };
 }
 

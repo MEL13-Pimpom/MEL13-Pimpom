@@ -22,7 +22,7 @@ export function DashboardShell({
       <Navbar userName={userName} userRole={userRole} avatarUrl={avatarUrl} />
       <div className="flex">
         <Sidebar items={navItems} />
-        <main className="flex-1 p-6 md:p-8">{children}</main>
+        <main className="flex-1 min-w-0 p-6 md:p-8">{children}</main>
       </div>
     </div>
   );

@@ -126,7 +126,7 @@ export async function adminDeleteUserAction(
     return {
       ok: false,
       error:
-        "Server is missing SUPABASE_SERVICE_ROLE_KEY. Add it to .env.local to enable user deletion.",
+        "Server is missing SUPABASE_SERVICE_ROLE_KEY.",
     };
   }
 

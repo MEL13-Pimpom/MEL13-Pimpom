@@ -11,12 +11,12 @@ export const metadata: Metadata = {
     shortcut: ["/icon.png"],
     apple: ["/icon.png"],
   },
-  openGraph: {
-    title: "Recycling Pickup Scheduler",
-    description:
-      "Schedule recycling pickups, manage requests, and coordinate collectors.",
-    images: [{ url: "/icon.png" }],
-  },
+  // openGraph: {
+  //   title: "Recycling Pickup Scheduler",
+  //   description:
+  //     "Schedule recycling pickups, manage requests, and coordinate collectors.",
+  //   images: [{ url: "/icon.png" }],
+  // },
 };
 
 export default function RootLayout({

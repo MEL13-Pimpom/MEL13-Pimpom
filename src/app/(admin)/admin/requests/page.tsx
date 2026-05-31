@@ -13,6 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { RequestStatusBadge } from "@/components/shared/status-badge";
+import { AiDecisionBadge } from "@/components/shared/ai-decision-badge";
 import { requireRole } from "@/lib/auth/get-current-profile";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { REQUEST_TYPE_LABELS } from "@/lib/validations/request";
@@ -21,8 +22,11 @@ import { RequestActions } from "./request-actions";
 
 export const metadata = { title: "Manage Requests" };
 
-const STATUS_OPTIONS: { value: "all" | RequestStatus; label: string }[] = [
+type StatusFilterValue = "all" | "needs_attention" | RequestStatus;
+
+const STATUS_OPTIONS: { value: StatusFilterValue; label: string }[] = [
   { value: "all", label: "All" },
+  { value: "needs_attention", label: "Needs admin attention" },
   { value: "pending", label: "Pending" },
   { value: "approved", label: "Approved" },
   { value: "scheduled", label: "Scheduled" },
@@ -43,20 +47,24 @@ export default async function AdminRequestsPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const supabase = await createSupabaseServerClient();
 
-  const statusFilter = (params.status as RequestStatus | "all" | undefined) ?? "all";
+  const statusFilter = (params.status as StatusFilterValue | undefined) ?? "all";
   const page = Math.max(1, parseInt(params.page ?? "1", 10) || 1);
   const offset = (page - 1) * PAGE_SIZE;
 
   let query = supabase
     .from("pickup_requests")
     .select(
-      "id, type, address, status, preferred_date, preferred_time_window, scheduled_date, scheduled_time_window, weight_kg_estimate, notes, rejection_reason, photo_url, created_at, resident:profiles!pickup_requests_resident_id_fkey(id, full_name, phone)",
+      "id, type, address, status, preferred_date, preferred_time_window, scheduled_date, scheduled_time_window, weight_kg_estimate, notes, rejection_reason, photo_url, created_at, ai_category, ai_is_waste, ai_confidence, ai_match, ai_reason, ai_decision, ai_classified_at, resident:profiles!pickup_requests_resident_id_fkey(id, full_name, phone)",
       { count: "exact" },
     )
     .order("created_at", { ascending: false })
     .range(offset, offset + PAGE_SIZE - 1);
 
-  if (statusFilter !== "all") {
+  if (statusFilter === "needs_attention") {
+    query = query
+      .eq("status", "pending")
+      .in("ai_decision", ["needs_review", "error"]);
+  } else if (statusFilter !== "all") {
     query = query.eq("status", statusFilter);
   }
 
@@ -94,10 +102,7 @@ export default async function AdminRequestsPage({ searchParams }: PageProps) {
           <div className="flex flex-wrap gap-2 mt-4">
             {STATUS_OPTIONS.map((opt) => {
               const active = statusFilter === opt.value;
-              const href =
-                opt.value === "all"
-                  ? "/admin/requests"
-                  : `/admin/requests?status=${opt.value}`;
+              const href = `/admin/requests?status=${opt.value}`;
               return (
                 <Link
                   key={opt.value}
@@ -137,13 +142,14 @@ export default async function AdminRequestsPage({ searchParams }: PageProps) {
                   <TableHead>Scheduled</TableHead>
                   <TableHead>Weight</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>AI</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {rows.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
+                    <TableCell colSpan={9} className="text-center py-12 text-muted-foreground">
                       No requests match the current filters.
                     </TableCell>
                   </TableRow>
@@ -192,6 +198,14 @@ export default async function AdminRequestsPage({ searchParams }: PageProps) {
                         <TableCell>
                           <RequestStatusBadge status={r.status} />
                         </TableCell>
+                        <TableCell>
+                          <AiDecisionBadge decision={r.ai_decision} />
+                          {r.ai_category && r.ai_confidence != null && (
+                            <div className="text-xs text-muted-foreground mt-1">
+                              {r.ai_category} ({Math.round(Number(r.ai_confidence) * 100)}%)
+                            </div>
+                          )}
+                        </TableCell>
                         <TableCell className="text-right">
                           <RequestActions
                             request={{
@@ -208,6 +222,12 @@ export default async function AdminRequestsPage({ searchParams }: PageProps) {
                               rejectionReason: r.rejection_reason,
                               photoUrl: r.photo_url,
                               weightKgEstimate: r.weight_kg_estimate,
+                              aiCategory: r.ai_category,
+                              aiIsWaste: r.ai_is_waste,
+                              aiConfidence: r.ai_confidence != null ? Number(r.ai_confidence) : null,
+                              aiMatch: r.ai_match,
+                              aiReason: r.ai_reason,
+                              aiDecision: r.ai_decision,
                             }}
                           />
                         </TableCell>

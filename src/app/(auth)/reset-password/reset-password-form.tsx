@@ -17,18 +17,23 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+} from "@/components/ui/input-otp";
+import {
   resetPasswordSchema,
   type ResetPasswordInput,
 } from "@/lib/validations/auth";
 import { resetPasswordAction } from "@/lib/actions/auth";
 
-export function ResetPasswordForm() {
+export function ResetPasswordForm({ email }: { email: string }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
   const form = useForm<ResetPasswordInput>({
     resolver: zodResolver(resetPasswordSchema),
-    defaultValues: { password: "", confirmPassword: "" },
+    defaultValues: { email, token: "", password: "", confirmPassword: "" },
   });
 
   const onSubmit = (values: ResetPasswordInput) => {
@@ -47,6 +52,49 @@ export function ResetPasswordForm() {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+        <FormField
+          control={form.control}
+          name="email"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Email address</FormLabel>
+              <FormControl>
+                <Input
+                  type="email"
+                  className="h-11 bg-muted text-muted-foreground"
+                  autoComplete="email"
+                  readOnly
+                  tabIndex={-1}
+                  aria-readonly="true"
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="token"
+          render={({ field }) => (
+            <FormItem className="flex flex-col items-center">
+              <FormLabel>Verification code</FormLabel>
+              <FormControl>
+                <InputOTP maxLength={6} {...field}>
+                  <InputOTPGroup>
+                    <InputOTPSlot index={0} />
+                    <InputOTPSlot index={1} />
+                    <InputOTPSlot index={2} />
+                    <InputOTPSlot index={3} />
+                    <InputOTPSlot index={4} />
+                    <InputOTPSlot index={5} />
+                  </InputOTPGroup>
+                </InputOTP>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
         <FormField
           control={form.control}
           name="password"

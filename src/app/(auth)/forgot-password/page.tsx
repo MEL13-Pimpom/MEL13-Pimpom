@@ -10,7 +10,7 @@ export default function ForgotPasswordPage() {
   return (
     <AuthCard
       title="Reset your password"
-      subtitle="We'll send you a recovery link"
+      subtitle="We'll send you a 6-digit recovery code"
       footer={
         <Link href="/login" className="text-sm text-primary hover:underline">
           Back to sign in

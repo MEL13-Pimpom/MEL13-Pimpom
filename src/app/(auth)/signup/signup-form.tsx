@@ -1,6 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
@@ -26,6 +27,7 @@ import { signupSchema, type SignupInput } from "@/lib/validations/auth";
 import { signupAction } from "@/lib/actions/auth";
 
 export function SignupForm() {
+  const router = useRouter();
   const [pending, startTransition] = useTransition();
 
   const form = useForm<SignupInput>({
@@ -48,8 +50,8 @@ export function SignupForm() {
         toast.error(result.error);
         return;
       }
-      toast.success("Check your email to confirm your account.");
-      form.reset();
+      toast.success("We sent a 6-digit code to your email.");
+      router.push(`/signup/verify?email=${encodeURIComponent(values.email)}`);
     });
   };
 

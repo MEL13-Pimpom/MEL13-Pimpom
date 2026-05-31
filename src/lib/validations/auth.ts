@@ -24,8 +24,21 @@ export const forgotPasswordSchema = z.object({
   email: z.string().email({ message: "Enter a valid email address." }),
 });
 
+export const verifyOtpSchema = z.object({
+  email: z.string().email({ message: "Enter a valid email address." }),
+  token: z
+    .string()
+    .length(6, { message: "Enter the 6-digit code from your email." })
+    .regex(/^\d{6}$/, { message: "The code must be 6 digits." }),
+});
+
 export const resetPasswordSchema = z
   .object({
+    email: z.string().email({ message: "Enter a valid email address." }),
+    token: z
+      .string()
+      .length(6, { message: "Enter the 6-digit code from your email." })
+      .regex(/^\d{6}$/, { message: "The code must be 6 digits." }),
     password: z
       .string()
       .min(8, { message: "Password must be at least 8 characters." }),
@@ -39,4 +52,5 @@ export const resetPasswordSchema = z
 export type LoginInput = z.infer<typeof loginSchema>;
 export type SignupInput = z.infer<typeof signupSchema>;
 export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
+export type VerifyOtpInput = z.infer<typeof verifyOtpSchema>;
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;

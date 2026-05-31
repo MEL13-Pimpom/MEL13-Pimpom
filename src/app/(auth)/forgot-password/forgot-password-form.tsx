@@ -1,6 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
@@ -22,6 +23,7 @@ import {
 import { forgotPasswordAction } from "@/lib/actions/auth";
 
 export function ForgotPasswordForm() {
+  const router = useRouter();
   const [pending, startTransition] = useTransition();
 
   const form = useForm<ForgotPasswordInput>({
@@ -36,8 +38,8 @@ export function ForgotPasswordForm() {
         toast.error(result.error);
         return;
       }
-      toast.success("Recovery email sent. Check your inbox.");
-      form.reset();
+      toast.success("We sent a 6-digit code to your email.");
+      router.push(`/reset-password?email=${encodeURIComponent(values.email)}`);
     });
   };
 

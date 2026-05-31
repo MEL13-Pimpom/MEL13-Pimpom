@@ -34,7 +34,7 @@ The Recycling Pickup Scheduler is a fullstack web application that lets resident
 
 ## Key Features
 
-* Email/password and Google OAuth authentication (Supabase Auth)
+* Email/password and Google OAuth authentication (Supabase Auth); email confirmation & password reset via 6-digit OTP
 * Role-based dashboards with route-level access control
 * Request submission with photo upload to Supabase Storage
 * Approval workflow and route assignment
@@ -63,11 +63,11 @@ The Recycling Pickup Scheduler is a fullstack web application that lets resident
 ```
 src/
 ├─ app/                # Next.js App Router pages, grouped by role
-│  ├─ (auth)/          # /login, /signup, /forgot-password
+│  ├─ (auth)/          # /login, /signup, /signup/verify, /forgot-password, /reset-password
 │  ├─ (resident)/      # /resident/{dashboard, requests, new-request, notifications}
 │  ├─ (admin)/         # /admin/{dashboard, requests, schedule, routes, notifications, reports}
 │  ├─ (collector)/     # /collector/{dashboard, tasks, route, notifications}
-│  └─ auth/callback/   # Supabase OAuth + email-confirm callback
+│  └─ api/auth/callback/  # Google OAuth callback (code exchange)
 ├─ components/
 │  ├─ ui/              # shadcn primitives
 │  ├─ layout/          # Navbar, Sidebar, DashboardShell, nav config

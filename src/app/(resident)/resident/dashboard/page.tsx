@@ -60,10 +60,12 @@ export default async function ResidentDashboardPage() {
       .eq("status", "completed"),
     supabase
       .from("pickup_requests")
-      .select("id, type, address, scheduled_date, scheduled_time_window, status")
+      .select(
+        "id, type, address, preferred_date, preferred_time_window, scheduled_date, scheduled_time_window, status",
+      )
       .eq("resident_id", profile.id)
-      .eq("status", "scheduled")
-      .order("scheduled_date", { ascending: true })
+      .in("status", ["scheduled", "approved"])
+      .order("preferred_date", { ascending: true })
       .limit(3),
   ]);
 
@@ -153,16 +155,15 @@ export default async function ResidentDashboardPage() {
                     <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
                       <span className="flex items-center gap-1">
                         <Calendar className="w-4 h-4" />
-                        {r.scheduled_date
-                          ? format(parseISO(r.scheduled_date), "MMM d, yyyy")
-                          : "TBD"}
+                        {format(
+                          parseISO(r.scheduled_date ?? r.preferred_date),
+                          "MMM d, yyyy",
+                        )}
                       </span>
-                      {r.scheduled_time_window && (
-                        <span className="flex items-center gap-1">
-                          <Clock className="w-4 h-4" />
-                          {r.scheduled_time_window}
-                        </span>
-                      )}
+                      <span className="flex items-center gap-1">
+                        <Clock className="w-4 h-4" />
+                        {r.scheduled_time_window ?? r.preferred_time_window}
+                      </span>
                       <span className="truncate max-w-xs">{r.address}</span>
                     </div>
                   </div>

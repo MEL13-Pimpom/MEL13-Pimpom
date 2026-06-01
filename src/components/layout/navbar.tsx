@@ -2,8 +2,9 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { ChevronDown, KeyRound, LogOut, UserCircle } from "lucide-react";
-import { useTransition } from "react";
+import { usePathname } from "next/navigation";
+import { ChevronDown, KeyRound, LogOut, Menu, UserCircle } from "lucide-react";
+import { useEffect, useState, useTransition } from "react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -14,16 +15,32 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { logoutAction } from "@/lib/actions/auth";
+import { SidebarNav, type NavItem } from "./sidebar";
 
 interface NavbarProps {
   userName: string;
   userRole: string;
   avatarUrl?: string | null;
+  navItems: NavItem[];
 }
 
-export function Navbar({ userName, userRole, avatarUrl }: NavbarProps) {
+export function Navbar({ userName, userRole, avatarUrl, navItems }: NavbarProps) {
   const [pending, startTransition] = useTransition();
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const pathname = usePathname();
+
+  // Close the mobile drawer whenever the route changes.
+  useEffect(() => {
+    setMobileNavOpen(false);
+  }, [pathname]);
 
   const initials = (userName || "U")
     .split(" ")
@@ -34,8 +51,32 @@ export function Navbar({ userName, userRole, avatarUrl }: NavbarProps) {
 
   return (
     <header className="bg-white border-b border-border shadow-sm sticky top-0 z-30">
-      <div className="px-6 py-3 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-3">
+      <div className="px-4 sm:px-6 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
+            <SheetTrigger asChild>
+              <button
+                type="button"
+                className="md:hidden flex items-center justify-center h-10 w-10 -ml-1 rounded-lg hover:bg-secondary transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+                aria-label="Open navigation menu"
+              >
+                <Menu className="w-5 h-5" />
+              </button>
+            </SheetTrigger>
+            <SheetContent
+              side="left"
+              className="w-64 p-0 bg-sidebar border-sidebar-border"
+            >
+              <SheetHeader className="border-b border-sidebar-border">
+                <SheetTitle className="text-left">Menu</SheetTitle>
+              </SheetHeader>
+              <div className="overflow-y-auto">
+                <SidebarNav items={navItems} />
+              </div>
+            </SheetContent>
+          </Sheet>
+
+          <Link href="/" className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-xl overflow-hidden flex items-center justify-center">
             <Image
               src="/icon.png"
@@ -50,6 +91,7 @@ export function Navbar({ userName, userRole, avatarUrl }: NavbarProps) {
             <span className="text-xs text-muted-foreground">Scheduler</span>
           </div>
         </Link>
+        </div>
 
         <div className="flex items-center gap-3">
           <DropdownMenu>

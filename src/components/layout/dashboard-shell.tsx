@@ -19,7 +19,12 @@ export function DashboardShell({
 }: DashboardShellProps) {
   return (
     <div className="min-h-screen bg-background">
-      <Navbar userName={userName} userRole={userRole} avatarUrl={avatarUrl} />
+      <Navbar
+        userName={userName}
+        userRole={userRole}
+        avatarUrl={avatarUrl}
+        navItems={navItems}
+      />
       <div className="flex">
         <Sidebar items={navItems} />
         <main className="flex-1 min-w-0 p-6 md:p-8">{children}</main>
